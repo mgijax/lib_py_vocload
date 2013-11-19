@@ -1,11 +1,22 @@
 #!/usr/local/bin/python
+
+#
+# Modification History:
+#
+# 11/18/2013 jak:
+# Added CycleChecker class and DAG.checkCycles() method.
+# Changed Traversal.go() method to so you can set parameter defaults in subclass
+#   constructors without go() parameters overwriting things by default.
+
+
+#
 # DAG.py
 #
-# Directed acyclic graph representation. There are two main concepts implemented here: 
+# Directed acyclic graph representation. Two main concepts implemented here: 
 # DAGs and traversals. 
 #
-# A DAG is that mathmatical object having nodes and edges that we all know and love 
-# from ontology work. 
+# A DAG is that mathmatical object having nodes and edges that we all know and
+# love from ontology work. 
 # A DAG object encapsulates a set of nodes and edges and provides basic structuring and
 # inquiry methods.
 # Any hashable object (i.e., anything
@@ -36,6 +47,17 @@
 #    A given edge is represented twice: in the out-edges of the
 #    parent node, and in the in-edges of the child node. 
 #
+# Cycles:
+# By default, addEdge() checks for cycles and will raise an exception if
+#  adding the edge will cause a cycle in the graph.
+# - this is the safest approach as it guarrantees no cycles.
+# If you want to create the whole graph first and then check for cycles,
+# then (1) always addEdge(... checkCycles=False)
+# (2) you can check for cycles by calling the checkCycles() method
+#
+# If cycles are a possibility in your application, you should check for
+#  cycles one of these two ways before invoking any Traversals
+#  - as the Traversals may cause infinite loops if there are cycles.
 
 import sys
 #from collections import OrderedDict
@@ -44,7 +66,8 @@ import sys
 
 class DAG(object):
     def __init__(self):
-	self.nodes = {} #OrderedDict()
+	#self.nodes = OrderedDict()
+	self.nodes = {}
 
     #----------------------------------------------------------
     # STRUCTURING METHODS
@@ -120,6 +143,13 @@ class DAG(object):
 
     def isAncestor(self, n, m):
         return self.isDescendant(m, n)
+
+    def checkCycles(self):
+	'''
+	Return list of nodes involved in cycles.
+	Return empty list if no cycles in the graph.
+	'''
+	return CycleChecker().go(self)
 
     #----------------------------------------------------------
     # ITERATION METHODS
@@ -289,7 +319,7 @@ class DAG(object):
 
     def __addnode__(self, n):
         #self.nodes[n] = (OrderedDict(), OrderedDict())    # ({parents}, {children})
-	self.nodes[n] = ({}, {}) # ({parents}, {children})
+	self.nodes[n] = ({}, {})    # ({parents}, {children})
 
     def __parents__(self, child):
         return self.nodes[child][0]
@@ -322,15 +352,21 @@ class Traversal(object):
     afterNode		= None
     beforeEdge		= None
     afterEdge		= None
+    startNodes		= None
+    reversed		= False
+    allPaths		= False
 
     def getResults(self):
         return self
 
-    def go(self, dag, startNodes=None, reversed=False, allPaths=False):
+    def go(self, dag, startNodes=None, reversed=None, allPaths=None):
 	self.dag = dag
-	self.startNodes = startNodes
-	self.reversed = reversed
-	self.allPaths = allPaths
+	if startNodes != None:
+	    self.startNodes = startNodes
+	if reversed != None:
+	    self.reversed = reversed
+	if allPaths != None:
+	    self.allPaths = allPaths
 	self.dag.traverse(
 	    startNodes = self.startNodes,
 	    reversed = self.reversed,
@@ -484,6 +520,45 @@ class DAGMapper(Traversal):
     def getResults(self):
         return self.resultDag
 
+#-------------------------------------------------------
+
+class CycleChecker(Traversal):
+    '''
+    A Traversal whose go() & getResults() methods return a list of nodes
+     involved in cycles in the graph (empty list if no cycles)
+    '''
+    def __init__(self):
+	self.allPaths=True	# so we search all paths to each node
+	self.nodesOnPath = {}	# dict of nodes on the current traversal path
+				#  nodesOnPath[node] = index of node in the
+				#       current traversal path
+	self.cycleNodes = {}	# dict of nodes known to be involved in cycles
+
+    def beforeNode(self, dag, node, path):
+	if self.nodesOnPath.has_key(node):	# node on path already, cycle!
+	    
+	    # starting w/ earliest occurrance of this node on path,
+	    #  add all nodes on the path to self.cycleNodes
+	    # Remember in beforeNode(), path has even length, nodes are at even
+	    #  indexes (edges at odd)
+	    for i in range( self.nodesOnPath[node], len(path), 2):
+		self.cycleNodes[ path[i] ] = 1
+
+	    return False	# important, otherwise traversal will
+	    			#  visit node again and infinite loop
+
+	self.nodesOnPath[node] = len(path)  # Traversal will appended to path
+
+    def afterNode(self, dag, node, path):
+	self.nodesOnPath.pop(node)
+
+    def getResults(self):
+	'''
+	Return the list of nodes involved in cycles (empty list if no cycles)
+	'''
+	return self.cycleNodes.keys()
+
+# end class CycleChecker --------------------------------
     
 #####################################################################
 
@@ -500,9 +575,9 @@ if __name__ == "__main__":
 #
 # Building this dag:
 #     a
-#    / \
+#    / \\
 #   b   c
-#  / \ / \
+#  / \ / \\
 # x   d   y
 #
 #
@@ -578,4 +653,28 @@ if __name__ == "__main__":
     print "Clone unaffected by prune"
     pr.go(d2)
 
+    print
+    print "CycleChecker:"
+    print "Should be no nodes involved in a cycle"
+    #cycleNodes = CycleChecker().go(d2)
+    cycleNodes = d2.checkCycles()
+    print cycleNodes
 
+    print """
+# Now add a cycle
+#     a
+#    / \\
+#   b   c
+#  / \ / \\
+# x   d   y
+#     |
+#     e
+#     |
+#     f
+# + edge f->b
+"""
+    d2.addEdge('d', 'e').addEdge('e', 'f').addEdge('f','b',checkCycles=False)
+    #cycleNodes=CycleChecker().go(d2)
+    cycleNodes = d2.checkCycles()
+    print "List of nodes involved in cycles:"
+    print cycleNodes
