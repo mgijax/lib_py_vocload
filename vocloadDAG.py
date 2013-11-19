@@ -1,4 +1,4 @@
-#!/usr/loca/bin/python
+#!/usr/local/bin/python
 # DAG.py
 #
 # Directed acyclic graph representation. There are two main concepts implemented here: 
