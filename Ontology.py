@@ -38,7 +38,7 @@ import sys
 import re
 import string
 import types
-import DAG
+import vocloadDAG
 
 #------------------------------------
 #
@@ -96,10 +96,10 @@ In general, most OboOntology methods pass terms by passing IDs or OboTerm objs.
 (compare to DAG methods which take/return term objects themselves)
 
 In the DAG representation,
-the "in" edges to a node come from the node's parents, see DAG.iterInEdges()
-the "out" edges from a node go to the node's children, see DAG.iterOutEdges()
+the "in" edges to a node come from the node's parents, see vocloadDAG.iterInEdges()
+the "out" edges from a node go to the node's children, see vocloadDAG.iterOutEdges()
 """
-class OboOntology(DAG.DAG):
+class OboOntology(vocloadDAG.DAG):
     def __init__(self, nodeType=OboTerm):
 	# nodeType should be a subclass of OboTerm
 	super(OboOntology, self).__init__()
@@ -412,7 +412,7 @@ class OboLoader(object):
 	    # and function at some point).
 	    def efilt(p,c,d):
 		return p.namespace != c.namespace
-	    DAG.SimplePruner(edgeFilt=efilt).go(self.ontology)
+	    vocloadDAG.SimplePruner(edgeFilt=efilt).go(self.ontology)
 
 	return self.ontology
 
