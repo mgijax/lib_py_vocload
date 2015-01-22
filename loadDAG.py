@@ -63,6 +63,7 @@ import os
 import Log      # MGI-written Python libraries
 import vocloadlib
 import html
+import mgi_utils
 
 DEBUG = 0
 mgiType = os.environ['MGITYPE']
@@ -85,6 +86,11 @@ error = 'DAGLoad.error'
 
 unknown_mode = 'unknown load mode: %s'
 
+# constant for today's date, to be used in BCP files
+CDATE = mgi_utils.date("%m/%d/%Y")
+# constant for _createdby_key, to be used in BCP files
+CREATEDBY_KEY = 1001
+
 ###--- SQL INSERT Statements ---###
 
     # templates placed here for readability of the code, and formatted for
@@ -93,19 +99,22 @@ unknown_mode = 'unknown load mode: %s'
 INSERT_NODE = '''insert DAG_Node (_DAG_key, _Node_key, _Object_key, _Label_key)
     values (%d, %d, %d, %d)'''
 
-BCP_INSERT_NODE = '''%d|%d|%d|%d||\n'''
+BCP_INSERT_NODE = '''%%d|%%d|%%d|%%d|%s|%s\n''' % \
+	(CDATE, CDATE)
 
 INSERT_EDGE = '''insert DAG_Edge (_Edge_key, _DAG_key, _Parent_key,
         _Child_key, _Label_key, sequenceNum)
     values (%d, %d, %d,
         %d, %d, %d)'''
 
-BCP_INSERT_EDGE = '''%d|%d|%d|%d|%d|%d||\n'''
+BCP_INSERT_EDGE = '''%%d|%%d|%%d|%%d|%%d|%%d|%s|%s\n''' % \
+	(CDATE, CDATE)
 
 INSERT_CLOSURE = '''insert DAG_Closure (_DAG_key, _MGIType_key, _Ancestor_key, _Descendent_key, _AncestorObject_key, _DescendentObject_key, _AncestorLabel_key, _DescendentLabel_key)
     values (%d, %s, %d, %d, %d, %d)'''
 
-BCP_INSERT_CLOSURE = '''%d|%s|%d|%d|%d|%d|%d|%d||\n'''
+BCP_INSERT_CLOSURE = '''%%d|%%s|%%d|%%d|%%d|%%d|%%d|%%d|%s|%s\n''' % \
+	(CDATE, CDATE)
 
 ###--- Classes ---###
 
@@ -235,21 +244,16 @@ class DAGLoad:
         # Effects: nothing
         # Throws: raises 'error' if any exceptions occur
 
-        try:
-           self.openDiscrepancyFile()
-           if self.mode == 'full':
-               self.goFull()
-           else:
-               self.goIncremental()
-           self.closeDiscrepancyFile()
-           self.closeBCPFiles()
-           self.loadBCPFiles()
-        except:
-           # raise 'error' with whatever the descriptive message
-           # was originally
-           raise error, sys.exc_value
+        self.openDiscrepancyFile()
+        if self.mode == 'full':
+	    self.goFull()
+        else:
+	    self.goIncremental()
+        self.closeDiscrepancyFile()
+        self.closeBCPFiles()
+        self.loadBCPFiles()
 
-        self.log.writeline ('=' * 40)
+	self.log.writeline ('=' * 40)
 
         return
 
@@ -309,11 +313,11 @@ class DAGLoad:
         bcpErrorFile = os.environ['BCP_ERROR_FILE']
 
         if not vocloadlib.NO_LOAD:
-           if self.loadEdgeBCP:
-              vocloadlib.loadBCPFile ( self.dagEdgeBCPFileName, bcpLogFile, bcpErrorFile, 'DAG_Edge', self.passwordFile  )
-
            if self.loadNodeBCP:
               vocloadlib.loadBCPFile ( self.dagNodeBCPFileName, bcpLogFile, bcpErrorFile, 'DAG_Node', self.passwordFile  )
+
+           if self.loadEdgeBCP:
+              vocloadlib.loadBCPFile ( self.dagEdgeBCPFileName, bcpLogFile, bcpErrorFile, 'DAG_Edge', self.passwordFile  )
 
            if self.loadClosureBCP:
               vocloadlib.loadBCPFile ( self.dagClosureBCPFileName, bcpLogFile, bcpErrorFile, 'DAG_Closure', self.passwordFile  )

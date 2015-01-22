@@ -22,8 +22,18 @@ import re
 import string
 import os
 
-import db       # MGI-written Python modules
 import dbTable  # dbTable library
+
+try:
+	if os.environ['DB_TYPE'] == 'postgres':
+		import pg_db
+		db = pg_db
+		db.setAutoTranslateBE(True)
+	else:
+		import db
+except:
+	import db       # MGI-written Python modules
+
 
 ###--- Exceptions ---###
 
@@ -46,6 +56,13 @@ NO_LOAD = 0         # boolean (0/1); are we in a no-load state?
 TERM_IDS = None         # dictionary mapping term ID to term key,
                 #   set by TermLoad when running in
                 #   no-load mode
+
+# maps synonymtype to synonymtype_key
+SYNONYM_TYPE_MAP = {} 
+
+# maps notetype to notetype_key
+NOTE_TYPE_MAP = {} 
+
 
 ###--- Functions ---###
 
@@ -89,7 +106,9 @@ def sql (
     # Effects: queries the database
     # Throws: propagates any exceptions raised by db.sql()
 
-    return db.sql (commands, 'auto')
+    results =  db.sql (commands, 'auto')
+    db.commit()
+    return results
 
 def sqlog (
     commands,   # string of SQL, or list of SQL strings
@@ -248,13 +267,13 @@ def anyTermsCrossReferenced (
     # Throws: propagates any exceptions raised by sql()
 
     results = sql ( [
-            '''select ct = count(1)
+            '''select count(*) as ct
             from VOC_Term vt, VOC_Evidence ve
             where vt._Vocab_key = %d
                 and vt._Term_key = ve._EvidenceTerm_key
             ''' % vocab_key,
 
-            '''select ct = count(1)
+            '''select count(*) as ct
             from VOC_Term vt, VOC_Annot va
             where vt._Vocab_key = %d
                 and vt._Term_key = va._Term_key
@@ -341,11 +360,11 @@ def getDagKey (
                 from DAG_DAG dd, VOC_VocabDAG vvd
                 where dd._DAG_key = vvd._DAG_key
                     and vvd._Vocab_key = %d
-                    and dd.name = "%s"''' % (vocab, dag))
+                    and dd.name = \'%s\'''' % (vocab, dag))
     else:
         result = sql ('''select _DAG_key
                 from DAG_DAG
-                where name = "%s"''' % dag)
+                where name = \'%s\'''' % dag)
     if len(result) != 1:
         raise error, unknown_dag % dag
     return result[0]['_DAG_key']
@@ -371,7 +390,7 @@ def getVocabKey (
     # Throws: 1. error if the given 'vocab' is not in the database
     #   2. propagates any exceptions raised by sql()
 
-    result = sql ('select _Vocab_key from VOC_Vocab where name = "%s"' % \
+    result = sql ('select _Vocab_key from VOC_Vocab where name = \'%s\'' % \
         vocab)
     if len(result) != 1:
         raise error, unknown_vocab % vocab
@@ -387,10 +406,41 @@ def getSynonymTypeKey (
     # Throws: 1. error if the given synonym type is not in the database
     #   2. propagates any exceptions raised by sql()
 
-    result = sql ('select _SynonymType_key from MGI_SynonymType where synonymType = "%s" and _MGIType_key = %d' % (synonymType, VOCABULARY_TERM_TYPE))
-    if len(result) != 1:
+    global SYNONYM_TYPE_MAP 
+
+    if not SYNONYM_TYPE_MAP:
+	results = sql ('select _synonymtype_key, synonymtype from MGI_SynonymType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
+	for r in results:
+		SYNONYM_TYPE_MAP[r['synonymtype'].lower()] = r['_synonymtype_key']
+
+    synonymType = synonymType.lower()
+
+    if synonymType not in SYNONYM_TYPE_MAP:
         raise error, unknown_synonymtype % synonymType
-    return result[0]['_SynonymType_key']
+
+    return SYNONYM_TYPE_MAP[synonymType]
+
+def getNoteTypeKey (
+    noteType 
+    ):
+    """
+    Retrieves the _notetype_key for the given notetype
+    	using the mgitype_key for voc_term
+    """
+
+    global NOTE_TYPE_MAP 
+
+    if not NOTE_TYPE_MAP:
+	results = sql ('select _notetype_key, notetype from MGI_NoteType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
+	for r in results:
+		NOTE_TYPE_MAP[r['notetype'].lower()] = r['_notetype_key']
+
+    noteType = noteType.lower()
+
+    if noteType not in NOTE_TYPE_MAP:
+        raise error, unknown_notetype % noteType
+
+    return NOTE_TYPE_MAP[noteType]
 
 def checkVocabKey (
     vocab_key   # integer; key for vocabulary, as VOC_Vocab._Vocab_key
@@ -447,7 +497,7 @@ def countTerms (
 
     if type(vocab) == types.StringType:
         vocab = getVocabKey (vocab)
-    result = sql ('''select ct = count(1)
+    result = sql ('''select count(*) as ct
             from VOC_Term
             where _Vocab_key = %d''' % vocab)
     return result[0]['ct']
@@ -468,7 +518,7 @@ def countNodes (
 
     if type(dag) == types.StringType:
         dag = getDagKey (dag, vocab)
-    result = sql ('''select ct = count(1)
+    result = sql ('''select count(*) as ct
             from DAG_Node
             where _DAG_key = %d''' % dag)
     return result[0]['ct']
@@ -643,6 +693,44 @@ def getTermIDs (
         ids[row['accID']] = [row['_Term_key'], row['isObsolete'], row['term'], 0]
     return ids
 
+def getTermKeyMap (
+    termIDs, 
+    vocabName 
+    ):
+    """
+    Takes in a list of termIDs and builds a map to all the matching termKeys
+    in the specified vocabName
+    """
+
+    # perform queries in batches of 100 IDs
+    def batch_list(iterable, n = 1):
+       l = len(iterable)
+       for ndx in range(0, l, n):
+	   yield iterable[ndx:min(ndx+n, l)]
+
+    term_mgitype_key = 13
+
+    termKeyMap = {}
+
+    for batch in batch_list(termIDs, 100):
+
+	result = sql ('''select acc.accid, t._term_key
+		from ACC_Accession acc join 
+			voc_term t on (
+				t._term_key=acc._object_key
+				and acc.preferred=1
+				and acc._mgitype_key=%d
+			) join
+			voc_vocab v on (v._vocab_key=t._vocab_key)
+		where v.name='%s' 
+			and acc.accid in ('%s') ''' % \
+		(term_mgitype_key, vocabName, '\',\''.join(batch) ))
+
+	for row in result:
+	    termKeyMap[row['accid']] = row['_term_key']
+
+    return termKeyMap
+
 def getSecondaryTermIDs (
     vocab       # integer vocabulary key or string vocabulary name
     ):
@@ -746,7 +834,7 @@ def getMax (
     # Effects: queries the database
     # Throws: propagates all exceptions from sql()
 
-    result = sql ('select mx=max(%s) from %s' % (fieldname, table))
+    result = sql ('select max(%s) as mx from %s' % (fieldname, table))
 
     if result[0]['mx'] == None:
 	return 0
@@ -764,21 +852,6 @@ def getLogicalDBkey (
     # Throws: propagates any exceptions from getVocabAttributes()
 
     return getVocabAttributes (vocab)[2]
-
-def escapeDoubleQuotes (
-    s       # string in which to duplicate any double-quotes
-    ):
-    # Purpose: duplicate any double-quotes (") which appear in s
-    # Returns: string
-    # Assumes: nothing
-    # Effects: nothing
-    # Throws: nothing
-    # Notes: This function is used to prepare strings to be sent as part
-    #   of a SQL command to Sybase.  We delimit string fields for
-    #   sybase using double-quotes, so if the string contains any
-    #   double-quotes, we need to duplicate them.
-
-    return re.sub ('"', '""', s)
 
 def setNull (
     s      
@@ -854,15 +927,33 @@ def loadBCPFile ( bcpFileName, bcpLogFileName, bcpErrorFileName, tableName, pass
     # Effects: loads data to whatever table it is executing on
     # Raises:  raises an exception if bcp returns a non-zero (i.e.,
     #          value
+    #import subprocess
 
     bcpCmd = 'cat %s | bcp %s..%s in %s -c -t"|" -e %s -S%s -U%s >> %s' \
       % (passwordFile, db.get_sqlDatabase(), \
       tableName, bcpFileName, bcpErrorFileName, \
       db.get_sqlServer(), db.get_sqlUser(), bcpLogFileName  )
 
+    try:
+	if os.environ['DB_TYPE'] == 'postgres':
+	    bcpCmd = '%s/bin/bcpin.csh %s %s %s \'\' %s \'|\' \'\\n\' mgd >> %s' % \
+		(
+		    os.environ['PG_DBUTILS'],
+		    db.get_sqlServer(),
+		    db.get_sqlDatabase(),
+		    tableName,
+		    bcpFileName,
+		    bcpLogFileName
+		)
+    except:
+        pass
+
+    print bcpCmd
+    #p = subprocess.Popen( bcpCmd, stdout=stdout, stderr=stderr, shell=True)
+    #output, errors = p.communicate()
     rc = os.system( bcpCmd )
     if rc:
-       raise 'bcp error', sys.exc_value
+       raise 'bcp error', '%s %s' % (bcpCmd , rc)
     return
 
 
