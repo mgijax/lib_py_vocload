@@ -23,17 +23,10 @@ import string
 import os
 
 import dbTable  # dbTable library
+import db
 
-try:
-	if os.environ['DB_TYPE'] == 'postgres':
-		import pg_db
-		db = pg_db
-		db.setAutoTranslateBE(True)
-	else:
-		import db
-except:
-	import db       # MGI-written Python modules
-
+db.setAutoTranslate(False)
+db.setAutoTranslateBE(False)
 
 ###--- Exceptions ---###
 
@@ -217,27 +210,6 @@ def rollbackTransaction (
     if not NO_LOAD:
         sql (rollbackTransactionString)
     return
-
-
-def updateStatistics ( tableName,
-    log     # Log.Log object to which to log the 'commands'
-    ):
-    # Purpose: update statistics for table passed in
-    # Returns: nothing
-    # Assumes: an open db connection
-    # Effects: writes to 'log', and updates statistics on database
-    # Throws: propagates any exceptions raised by db.sql()
-    # Notes: This is the no-load version. It will check the 
-    # no-load flag before updating statistics.
-
-    updateStatisticsString = "update statistics %s" % tableName
-
-    log.writeline ( "Updating Statistics for %s..." % tableName )
-    log.writeline ( updateStatisticsString )
-    if not NO_LOAD:
-        sql (updateStatisticsString)
-    return
-
 
 def setVocabMGITypeKey (
     key     # integer; _MGIType_key for vocabulary terms
@@ -954,26 +926,6 @@ def loadBCPFile ( bcpFileName, bcpLogFileName, bcpErrorFileName, tableName, pass
     rc = os.system( bcpCmd )
     if rc:
        raise 'bcp error', '%s %s' % (bcpCmd , rc)
-    return
-
-
-def truncateTransactionLog (
-    database,       # string; name of the database
-    log = None      # Log.Log object; where to log the command
-    ):
-    # Purpose: truncate the transaction log for the given database
-    # Returns: nothing
-    # Assumes: nothing
-    # Effects: see Purpose, does not save the log's contents to a file
-    # Throws: propagates any exceptions from sql()
-    # Notes: We do not dump the transaction log if running in no-load
-    #   mode.
-
-    cmd = 'dump transaction %s with truncate_only' % database
-    if log:
-        nl_sqlog (cmd, log)
-    elif not NOLOAD:
-        sql (cmd)
     return
 
 ###--- Private Functions ---###
