@@ -105,7 +105,6 @@ def sql (
     # Throws: propagates any exceptions raised by db.sql()
 
     results =  db.sql (commands, 'auto')
-    db.commit()
     return results
 
 def sqlog (
