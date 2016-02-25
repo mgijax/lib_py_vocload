@@ -56,7 +56,6 @@ SYNONYM_TYPE_MAP = {}
 # maps notetype to notetype_key
 NOTE_TYPE_MAP = {} 
 
-
 ###--- Functions ---###
 
 def setupSql (server,   # string; name of database server
@@ -73,7 +72,7 @@ def setupSql (server,   # string; name of database server
     #   connection for each sql() call)
     # Throws: nothing
 
-    db.set_sqlLogin (username, password, server, database)
+    db.set_sqlLogin(username, password, server, database)
     db.useOneConnection(1)
     return
 
@@ -99,7 +98,7 @@ def sql (
     # Effects: queries the database
     # Throws: propagates any exceptions raised by db.sql()
 
-    results =  db.sql (commands, 'auto')
+    results =  db.sql(commands, 'auto')
     db.commit()
     return results
 
@@ -114,8 +113,8 @@ def sqlog (
     # Effects: writes to 'log', sends 'commands' to database
     # Throws: propagates any exceptions raised by db.sql()
 
-    log.writeline (commands)
-    return sql (commands)
+    log.writeline(commands)
+    return sql(commands)
 
 def setNoload (
     on = 1      # boolean (0/1); turn no-load on (1) or off (0)?
@@ -146,11 +145,12 @@ def nl_sqlog (
     #   prefix.  It will check the no-load flag before executing
     #   the SQL.
 
-    log.writeline (commands)
-    if not NO_LOAD:
-        return sql (commands)
-    return []
+    log.writeline(commands)
 
+    if not NO_LOAD:
+        return sql(commands)
+
+    return []
 
 def beginTransaction (
     log     # Log.Log object to which to log the 'commands'
@@ -165,10 +165,12 @@ def beginTransaction (
     
     beginTransactionString = "begin transaction"
 
-    log.writeline ( "Beginning Transaction..." )
-    log.writeline ( beginTransactionString )
+    log.writeline("Beginning Transaction...")
+    log.writeline(beginTransactionString)
+
     if not NO_LOAD:
-        sql (beginTransactionString)
+        sql(beginTransactionString)
+
     return
 
 
@@ -185,10 +187,12 @@ def commitTransaction (
 
     commitTransactionString = "commit transaction"
 
-    log.writeline ( "Committing Transaction..." )
-    log.writeline ( commitTransactionString )
+    log.writeline("Committing Transaction...")
+    log.writeline(commitTransactionString)
+
     if not NO_LOAD:
-        sql (commitTransactionString)
+        sql(commitTransactionString)
+
     return
 
 
@@ -205,10 +209,12 @@ def rollbackTransaction (
 
     rollbackTransactionString = "rollback transaction"
 
-    log.writeline ( "Rolling Back Transaction..." )
-    log.writeline ( rollbackTransactionString )
+    log.writeline("Rolling Back Transaction...")
+    log.writeline(rollbackTransactionString)
+
     if not NO_LOAD:
-        sql (rollbackTransactionString)
+        sql(rollbackTransactionString)
+
     return
 
 def setVocabMGITypeKey (
@@ -277,9 +283,11 @@ def getAnyTermMarkerCrossReferences (
                 and    t._Term_key      = a._Term_key
                 and    a._AnnotType_key = %s
                 and    a._Object_key    = m._Marker_key
-            ''' % ( termKey, annotationKey ))
+            ''' % (termKey, annotationKey))
+
     except:
        raise 'xref error', sys.exc_value
+
     return results
 
 def timestamp (
@@ -308,8 +316,10 @@ def getDagName (
     #   2. propagates any exceptions raised by sql()
 
     result = sql ('select name from DAG_DAG where _DAG_key = %d' % dag)
+
     if len(result) != 1:
         raise error, unknown_dag_key % dag
+
     return result[0]['name']
 
 def getDagKey (
@@ -326,19 +336,25 @@ def getDagKey (
     #   values, we may also need to know which 'vocab' it relates to.
 
     if vocab:
+
         if type(vocab) == types.StringType:
             vocab = getVocabKey (vocab)
+
         result = sql ('''select dd._DAG_key
                 from DAG_DAG dd, VOC_VocabDAG vvd
                 where dd._DAG_key = vvd._DAG_key
                     and vvd._Vocab_key = %d
                     and dd.name = \'%s\'''' % (vocab, dag))
+
     else:
+
         result = sql ('''select _DAG_key
                 from DAG_DAG
                 where name = \'%s\'''' % dag)
+
     if len(result) != 1:
         raise error, unknown_dag % dag
+
     return result[0]['_DAG_key']
 
 def getVocabName (
@@ -640,6 +656,7 @@ def getTermIDs (
 
     if type(vocab) == types.StringType:
         vocab = getVocabKey (vocab)
+
     result = sql ('''select acc.accID, vt._Term_key, vt.isObsolete, vt.term
             from VOC_Term vt, ACC_Accession acc
             where vt._Vocab_key = %d
@@ -647,12 +664,14 @@ def getTermIDs (
                 and vt._Term_key = acc._Object_key
                 and acc.preferred = 1''' % \
             (vocab, VOCABULARY_TERM_TYPE))
+
     ids = {}
     for row in result:
         #NOTE: The '0' added to the end of the list is a flag used to 
         #track whether or not a term in the database has a corresponding
         #term in the input file
         ids[row['accID']] = [row['_Term_key'], row['isObsolete'], row['term'], 0]
+
     return ids
 
 def getTermKeyMap (
@@ -713,12 +732,14 @@ def getSecondaryTermIDs (
                 and vt._Term_key = acc._Object_key
                 and acc.preferred = 0''' % \
             (vocab, VOCABULARY_TERM_TYPE))
+
     ids = {}
     for row in result:
         #NOTE: The '0' added to the end of the list is a flag used to 
         #track whether or not a term in the database has a corresponding
         #term in the input file
         ids[row['accID']] = [row['_Term_key'], row['term'], 0]
+
     return ids
 
 def readTabFile (
@@ -745,8 +766,11 @@ def readTabFile (
     fp = open (filename, 'r')
     line = fp.readline()
     lineNbr = 0
+
     while line:
+
         lineNbr = lineNbr + 1
+
         # note that we use line[:-1] to trim the trailing newline
         fields = re.split ('\t', line[:-1])
 
@@ -762,7 +786,9 @@ def readTabFile (
 
         lines.append(dict)  # add to the list of dictionaries
         line = fp.readline()
+
     fp.close()
+
     return lines
 
 def getMax (
@@ -867,35 +893,23 @@ def loadBCPFile ( bcpFileName, bcpLogFileName, bcpErrorFileName, tableName, pass
     # Returns: nothing
     # Assumes: bcp is available and exists in PATH
     # Effects: loads data to whatever table it is executing on
-    # Raises:  raises an exception if bcp returns a non-zero (i.e.,
-    #          value
-    #import subprocess
+    # Raises:  raises an exception if bcp returns a non-zero (i.e., value)
 
-    bcpCmd = 'cat %s | bcp %s..%s in %s -c -t"|" -e %s -S%s -U%s >> %s' \
-      % (passwordFile, db.get_sqlDatabase(), \
-      tableName, bcpFileName, bcpErrorFileName, \
-      db.get_sqlServer(), db.get_sqlUser(), bcpLogFileName  )
-
-    try:
-	if os.environ['DB_TYPE'] == 'postgres':
-	    bcpCmd = '%s/bin/bcpin.csh %s %s %s \'\' %s \'|\' \'\\n\' mgd >> %s' % \
-		(
-		    os.environ['PG_DBUTILS'],
-		    db.get_sqlServer(),
-		    db.get_sqlDatabase(),
-		    tableName,
-		    bcpFileName,
-		    bcpLogFileName
-		)
-    except:
-        pass
+    bcpCmd = '%s/bin/bcpin.csh %s %s %s \'\' %s \'|\' \'\\n\' mgd >> %s' % \
+	(os.environ['PG_DBUTILS'],
+	 db.get_sqlServer(),
+	 db.get_sqlDatabase(),
+	 tableName,
+	 bcpFileName,
+	 bcpLogFileName
+	)
 
     print bcpCmd
-    #p = subprocess.Popen( bcpCmd, stdout=stdout, stderr=stderr, shell=True)
-    #output, errors = p.communicate()
-    rc = os.system( bcpCmd )
+    rc = os.system(bcpCmd)
+
     if rc:
        raise 'bcp error', '%s %s' % (bcpCmd , rc)
+
     return
 
 ###--- Private Functions ---###
