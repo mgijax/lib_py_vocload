@@ -30,20 +30,15 @@ db.setAutoTranslateBE(False)
 
 ###--- Exceptions ---###
 
-class VocloadlibError(Exception):
-    """
-    Exception raised in this module
-    """
-    pass
+error = 'vocloadlib.error'  # exception raised in this module, values:
 
-UNKNOWN_DAG_ERROR = 'unknown DAG name "%s"'
-UNKNOWN_DAG_KEY_ERROR = 'unknown DAG key "%s"'
-UNKNOWN_NOTE_TYPE_ERROR = 'unknown note type "%s"'
-UNKNOWN_VOCAB_ERROR = 'unknown vocabulary name "%s"'
-UNKNOWN_VOCAB_KEY_ERROR = 'unknown vocabulary key "%s"'
-UNKNOWN_SYNONYM_TYPE_ERROR = 'unknown synonym type "%s"'
+unknown_dag = 'unknown DAG name "%s"'
+unknown_dag_key = 'unknown DAG key "%s"'
+unknown_vocab = 'unknown vocabulary name "%s"'
+unknown_vocab_key = 'unknown vocabulary key "%s"'
+unknown_synonymtype = 'unknown synonym type "%s"'
 
-BAD_LINE_ERROR = '%s:Incorrect Line Format for Line Number %d\n%s'
+bad_line = '%s:Incorrect Line Format for Line Number %d\n%s'
 
 ###--- Globals ---###
 
@@ -105,6 +100,7 @@ def sql (
     # Throws: propagates any exceptions raised by db.sql()
 
     results =  db.sql (commands, 'auto')
+    db.commit()
     return results
 
 def sqlog (
@@ -313,7 +309,7 @@ def getDagName (
 
     result = sql ('select name from DAG_DAG where _DAG_key = %d' % dag)
     if len(result) != 1:
-        raise VocloadlibError(UNKNOWN_DAG_KEY_ERROR % dag)
+        raise error, unknown_dag_key % dag
     return result[0]['name']
 
 def getDagKey (
@@ -342,7 +338,7 @@ def getDagKey (
                 from DAG_DAG
                 where name = \'%s\'''' % dag)
     if len(result) != 1:
-        raise VocloadlibError(UNKNOWN_DAG_ERROR % dag)
+        raise error, unknown_dag % dag
     return result[0]['_DAG_key']
 
 def getVocabName (
@@ -369,7 +365,7 @@ def getVocabKey (
     result = sql ('select _Vocab_key from VOC_Vocab where name = \'%s\'' % \
         vocab)
     if len(result) != 1:
-        raise VocloadlibError(UNKNOWN_VOCAB_ERROR % vocab)
+        raise error, unknown_vocab % vocab
     return result[0]['_Vocab_key']
 
 def getSynonymTypeKey (
@@ -392,7 +388,7 @@ def getSynonymTypeKey (
     synonymType = synonymType.lower()
 
     if synonymType not in SYNONYM_TYPE_MAP:
-        raise VocloadlibError(UNKNOWN_SYNONYM_TYPE_ERROR % synonymType)
+        raise error, unknown_synonymtype % synonymType
 
     return SYNONYM_TYPE_MAP[synonymType]
 
@@ -414,7 +410,7 @@ def getNoteTypeKey (
     noteType = noteType.lower()
 
     if noteType not in NOTE_TYPE_MAP:
-        raise VocloadlibError(UNKNOWN_NOTE_TYPE_ERROR % noteType)
+        raise error, unknown_notetype % noteType
 
     return NOTE_TYPE_MAP[noteType]
 
@@ -543,29 +539,19 @@ def getTerms (
 	order by n._Object_key, nc.sequenceNum''' % (vocab, os.environ['VOCAB_COMMENT_KEY'])
         ] )
     
-    # build a dictionary of 'notes', mapping a term key to a string of
-    # notes.  We take care to join multiple 255-character chunks into
-    # one string.
+    # build a dictionary of 'notes', mapping a term key to a string of notes.  
 
     notes = {}
     for row in voc_text:
         term_key = row['_Term_key']
-        if notes.has_key (term_key):
-            notes[term_key] = notes[term_key] + row['note']
-        else:
-            notes[term_key] = row['note']
+        notes[term_key] = row['note']
 
-    # build a dictionary of 'comments', mapping a term key to a string of
-    # notes.  We take care to join multiple 255-character chunks into
-    # one string.
+    # build a dictionary of 'comments', mapping a term key to a string of notes.  
 
     comments = {}
     for row in voc_comment:
         term_key = row['_Object_key']
-        if comments.has_key (term_key):
-            comments[term_key] = comments[term_key] + row['note']
-        else:
-            comments[term_key] = row['note']
+        comments[term_key] = row['note']
 
     # build a dictionary of 'synonyms', mapping a term key to a list of
     # strings (each of which is one synonym)
@@ -765,7 +751,7 @@ def readTabFile (
         fields = re.split ('\t', line[:-1])
 
         if len(fields) != num_fields:
-            raise VocloadlibError(BAD_LINE_ERROR % (filename, lineNbr, line) )
+            raise error, bad_line % (filename, lineNbr, line)
 
         # map each tab-delimited field to its corresponding fieldname
         i = 0
@@ -778,26 +764,6 @@ def readTabFile (
         line = fp.readline()
     fp.close()
     return lines
-
-def splitBySize (
-    s,      # string; the string to be split
-    size = 255  # integer; max number of characters per output string
-    ):
-    # Purpose: break 's' into a list of strings containing at most 'size'
-    #   characters
-    # Returns: list of strings
-    # Assumes: nothing
-    # Effects: nothing
-    # Throws: nothing
-    # Notes: string.join (splitBySize (s, n), '') == s, for all n
-
-    len_s = len(s)
-    parts = []
-    i = 0
-    while i < len_s:
-        parts.append (s[i:i+size])
-        i = i + size
-    return parts
 
 def getMax (
     fieldname,  # string; name of a field in 'table' in the database
@@ -897,12 +863,40 @@ def isNoLoad ():
     return NO_LOAD
 
 def loadBCPFile ( bcpFileName, bcpLogFileName, bcpErrorFileName, tableName, passwordFile ):
-    """
-    Loads bcpFileName into tableName
-    """
+    # Purpose: Physically loads BCP files to the database via a system command to bcp
+    # Returns: nothing
+    # Assumes: bcp is available and exists in PATH
+    # Effects: loads data to whatever table it is executing on
+    # Raises:  raises an exception if bcp returns a non-zero (i.e.,
+    #          value
+    #import subprocess
 
-    db.bcp(bcpFileName, tableName, delimiter='|')
-    
+    bcpCmd = 'cat %s | bcp %s..%s in %s -c -t"|" -e %s -S%s -U%s >> %s' \
+      % (passwordFile, db.get_sqlDatabase(), \
+      tableName, bcpFileName, bcpErrorFileName, \
+      db.get_sqlServer(), db.get_sqlUser(), bcpLogFileName  )
+
+    try:
+	if os.environ['DB_TYPE'] == 'postgres':
+	    bcpCmd = '%s/bin/bcpin.csh %s %s %s \'\' %s \'|\' \'\\n\' mgd >> %s' % \
+		(
+		    os.environ['PG_DBUTILS'],
+		    db.get_sqlServer(),
+		    db.get_sqlDatabase(),
+		    tableName,
+		    bcpFileName,
+		    bcpLogFileName
+		)
+    except:
+        pass
+
+    print bcpCmd
+    #p = subprocess.Popen( bcpCmd, stdout=stdout, stderr=stderr, shell=True)
+    #output, errors = p.communicate()
+    rc = os.system( bcpCmd )
+    if rc:
+       raise 'bcp error', '%s %s' % (bcpCmd , rc)
+    return
 
 ###--- Private Functions ---###
 
@@ -934,7 +928,7 @@ def getVocabAttributes (
                 from VOC_Vocab
                 where _Vocab_key = %d''' % vocab)
         if len(result) != 1:
-            raise VocloadlibError(UNKNOWN_VOCAB_KEY_ERROR % vocab)
+            raise error, unknown_vocab_key % vocab
         r = result[0]
 
         # store resulting info in the cache
