@@ -292,10 +292,7 @@ def timestamp (
     # Effects: nothing
     # Throws: nothing
 
-    return '%s %s' % \
-        (label,
-        time.strftime ("%m/%d/%Y %H:%M:%S",
-            time.localtime (time.time())))
+    return '%s %s' % (label, time.strftime ("%m/%d/%Y %H:%M:%S", time.localtime (time.time())))
 
 def getDagName (
     dag     # integer; corresponds to DAG_DAG._DAG_key
@@ -539,29 +536,19 @@ def getTerms (
 	order by n._Object_key, nc.sequenceNum''' % (vocab, os.environ['VOCAB_COMMENT_KEY'])
         ] )
     
-    # build a dictionary of 'notes', mapping a term key to a string of
-    # notes.  We take care to join multiple 255-character chunks into
-    # one string.
+    # build a dictionary of 'notes', mapping a term key to a string of notes.  
 
     notes = {}
     for row in voc_text:
         term_key = row['_Term_key']
-        if notes.has_key (term_key):
-            notes[term_key] = notes[term_key] + row['note']
-        else:
-            notes[term_key] = row['note']
+        notes[term_key] = row['note']
 
-    # build a dictionary of 'comments', mapping a term key to a string of
-    # notes.  We take care to join multiple 255-character chunks into
-    # one string.
+    # build a dictionary of 'comments', mapping a term key to a string of notes.  
 
     comments = {}
     for row in voc_comment:
         term_key = row['_Object_key']
-        if comments.has_key (term_key):
-            comments[term_key] = comments[term_key] + row['note']
-        else:
-            comments[term_key] = row['note']
+        comments[term_key] = row['note']
 
     # build a dictionary of 'synonyms', mapping a term key to a list of
     # strings (each of which is one synonym)
@@ -775,26 +762,6 @@ def readTabFile (
     fp.close()
     return lines
 
-def splitBySize (
-    s,      # string; the string to be split
-    size = 255  # integer; max number of characters per output string
-    ):
-    # Purpose: break 's' into a list of strings containing at most 'size'
-    #   characters
-    # Returns: list of strings
-    # Assumes: nothing
-    # Effects: nothing
-    # Throws: nothing
-    # Notes: string.join (splitBySize (s, n), '') == s, for all n
-
-    len_s = len(s)
-    parts = []
-    i = 0
-    while i < len_s:
-        parts.append (s[i:i+size])
-        i = i + size
-    return parts
-
 def getMax (
     fieldname,  # string; name of a field in 'table' in the database
     table       # string; name of a table in the database
@@ -899,30 +866,18 @@ def loadBCPFile ( bcpFileName, bcpLogFileName, bcpErrorFileName, tableName, pass
     # Effects: loads data to whatever table it is executing on
     # Raises:  raises an exception if bcp returns a non-zero (i.e.,
     #          value
-    #import subprocess
 
-    bcpCmd = 'cat %s | bcp %s..%s in %s -c -t"|" -e %s -S%s -U%s >> %s' \
-      % (passwordFile, db.get_sqlDatabase(), \
-      tableName, bcpFileName, bcpErrorFileName, \
-      db.get_sqlServer(), db.get_sqlUser(), bcpLogFileName  )
-
-    try:
-	if os.environ['DB_TYPE'] == 'postgres':
-	    bcpCmd = '%s/bin/bcpin.csh %s %s %s \'\' %s \'|\' \'\\n\' mgd >> %s' % \
-		(
-		    os.environ['PG_DBUTILS'],
-		    db.get_sqlServer(),
-		    db.get_sqlDatabase(),
-		    tableName,
-		    bcpFileName,
-		    bcpLogFileName
-		)
-    except:
-        pass
+    bcpCmd = '%s/bin/bcpin.csh %s %s %s \'\' %s \'|\' \'\\n\' mgd >> %s' % \
+	(
+	    os.environ['PG_DBUTILS'],
+	    db.get_sqlServer(),
+	    db.get_sqlDatabase(),
+	    tableName,
+	    bcpFileName,
+	    bcpLogFileName
+	)
 
     print bcpCmd
-    #p = subprocess.Popen( bcpCmd, stdout=stdout, stderr=stderr, shell=True)
-    #output, errors = p.communicate()
     rc = os.system( bcpCmd )
     if rc:
        raise 'bcp error', '%s %s' % (bcpCmd , rc)
