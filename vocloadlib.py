@@ -30,7 +30,10 @@ db.setAutoTranslateBE(False)
 
 ###--- Exceptions ---###
 
-error = 'vocloadlib.error'  # exception raised in this module, values:
+class VocloadlibError(Exception):
+    """
+    Raised for all errors in this module
+    """
 
 unknown_dag = 'unknown DAG name "%s"'
 unknown_dag_key = 'unknown DAG key "%s"'
@@ -70,7 +73,7 @@ def setupSql (server,   # string; name of database server
     # Assumes: the parameters are all valid
     # Effects: initializes the 'db' module with the given login info, and
     #   tells it to use one connection (rather than a separate
-    #   connection for each sql() call)
+    #   connection for each db.sql() call)
     # Throws: nothing
 
     db.set_sqlLogin (username, password, server, database)
@@ -87,35 +90,19 @@ def unsetupSql ():
     db.useOneConnection(0)
     return
 
-def sql (
-    commands    # string of SQL, or list of SQL strings
-    ):
-    # Purpose: wrapper over the db.sql() function, so we don't need to
-    #   specify 'auto' with each call.
-    # Returns: as db.sql(), returns:
-    #   list of dictionaries of 'commands' is a string
-    #   list of lists of dictionaries if 'commands' is a list
-    # Assumes: setupSql() has been invoked appropriately
-    # Effects: queries the database
-    # Throws: propagates any exceptions raised by db.sql()
-
-    results =  db.sql (commands, 'auto')
-    db.commit()
-    return results
-
 def sqlog (
     commands,   # string of SQL, or list of SQL strings
     log     # Log.Log object to which to log the 'commands'
     ):
     # Purpose: write the given 'commands' to the given 'log', then execute
     #   those SQL 'commands'
-    # Returns: see sql()
-    # Assumes: see sql()
+    # Returns: same as db.sql()
+    # Assumes: same as db.sql()
     # Effects: writes to 'log', sends 'commands' to database
     # Throws: propagates any exceptions raised by db.sql()
 
     log.writeline (commands)
-    return sql (commands)
+    return db.sql (commands)
 
 def setNoload (
     on = 1      # boolean (0/1); turn no-load on (1) or off (0)?
@@ -138,8 +125,8 @@ def nl_sqlog (
     ):
     # Purpose: write the given 'commands' to the given 'log'.  If we are
     #   not in a no-load state, then execute those SQL 'commands'.
-    # Returns: see sql()
-    # Assumes: see sql()
+    # Returns: same as db.sql()
+    # Assumes: same as db.sql()
     # Effects: writes to 'log', may send 'commands' to database
     # Throws: propagates any exceptions raised by db.sql()
     # Notes: This is the no-load version of sqlog(), hence the "nl_"
@@ -148,68 +135,9 @@ def nl_sqlog (
 
     log.writeline (commands)
     if not NO_LOAD:
-        return sql (commands)
+        return db.sql (commands)
     return []
 
-
-def beginTransaction (
-    log     # Log.Log object to which to log the 'commands'
-    ):
-    # Purpose: open a Sybase transaction
-    # Returns: nothing
-    # Assumes: an open db connection
-    # Effects: writes to 'log', may send begin transaction to database
-    # Throws: propagates any exceptions raised by db.sql()
-    # Notes: This is the no-load version. It will check the 
-    # no-load flag before opening the transaction.
-    
-    beginTransactionString = "begin transaction"
-
-    log.writeline ( "Beginning Transaction..." )
-    log.writeline ( beginTransactionString )
-    if not NO_LOAD:
-        sql (beginTransactionString)
-    return
-
-
-def commitTransaction (
-    log     # Log.Log object to which to log the 'commands'
-    ):
-    # Purpose: commit a Sybase transaction
-    # Returns: nothing
-    # Assumes: an open db connection
-    # Effects: writes to 'log', may send commit to database
-    # Throws: propagates any exceptions raised by db.sql()
-    # Notes: This is the no-load version. It will check the 
-    # no-load flag before committing the transaction.
-
-    commitTransactionString = "commit transaction"
-
-    log.writeline ( "Committing Transaction..." )
-    log.writeline ( commitTransactionString )
-    if not NO_LOAD:
-        sql (commitTransactionString)
-    return
-
-
-def rollbackTransaction (
-    log     # Log.Log object to which to log the 'commands'
-    ):
-    # Purpose: rollback a Sybase transaction
-    # Returns: nothing
-    # Assumes: an open db connection
-    # Effects: writes to 'log', may send rollback to database
-    # Throws: propagates any exceptions raised by db.sql()
-    # Notes: This is the no-load version. It will check the 
-    # no-load flag before rolling back the transaction.
-
-    rollbackTransactionString = "rollback transaction"
-
-    log.writeline ( "Rolling Back Transaction..." )
-    log.writeline ( rollbackTransactionString )
-    if not NO_LOAD:
-        sql (rollbackTransactionString)
-    return
 
 def setVocabMGITypeKey (
     key     # integer; _MGIType_key for vocabulary terms
@@ -234,11 +162,10 @@ def anyTermsCrossReferenced (
     #   'vocab_key' are cross-referenced from the VOC_Evidence and/or
     #   VOC_Annot tables
     # Returns: boolean (0/1) indicating whether any such cross-refs exist
-    # Assumes: see sql()
     # Effects: queries the database
-    # Throws: propagates any exceptions raised by sql()
+    # Throws: propagates any exceptions raised by db.sql()
 
-    results = sql ( [
+    results = db.sql ( [
             '''select count(*) as ct
             from VOC_Term vt, VOC_Evidence ve
             where vt._Vocab_key = %d
@@ -259,14 +186,14 @@ def getAnyTermMarkerCrossReferences (
     ):
     # Purpose: get any annotations to a term/annotationType
     # Returns: list of annotations
-    # Assumes: see sql()
+    # Assumes: see db.sql()
     # Effects: queries the database
-    # Throws:  propagates any exceptions raised by sql()
+    # Throws:  propagates any exceptions raised by db.sql()
     # Notes:   please be aware that this function only
     #          gets term to marker annotations
 
     try:
-       results = sql ( 
+       results = db.sql ( 
             ''' select m.symbol
                       ,t.term
                       ,t._term_key
@@ -279,7 +206,7 @@ def getAnyTermMarkerCrossReferences (
                 and    a._Object_key    = m._Marker_key
             ''' % ( termKey, annotationKey ))
     except:
-       raise 'xref error', sys.exc_value
+       raise VocloadlibError('xref error', sys.exc_value)
     return results
 
 def timestamp (
@@ -302,11 +229,11 @@ def getDagName (
     # Assumes: nothing
     # Effects: queries the database
     # Throws: 1. error if the given 'dag' is not in the database;
-    #   2. propagates any exceptions raised by sql()
+    #   2. propagates any exceptions raised by db.sql()
 
-    result = sql ('select name from DAG_DAG where _DAG_key = %d' % dag)
+    result = db.sql ('select name from DAG_DAG where _DAG_key = %d' % dag)
     if len(result) != 1:
-        raise error, unknown_dag_key % dag
+        raise VocloadlibError(unknown_dag_key % dag)
     return result[0]['name']
 
 def getDagKey (
@@ -318,24 +245,24 @@ def getDagKey (
     # Assumes: nothing
     # Effects: queries the database
     # Throws: 1. error if the given 'dag' is not in the database;
-    #   2. propagates any exceptions raised by sql()
+    #   2. propagates any exceptions raised by db.sql()
     # Notes: Since the DAG_DAG.name field is does not require unique
     #   values, we may also need to know which 'vocab' it relates to.
 
     if vocab:
         if type(vocab) == types.StringType:
             vocab = getVocabKey (vocab)
-        result = sql ('''select dd._DAG_key
+        result = db.sql ('''select dd._DAG_key
                 from DAG_DAG dd, VOC_VocabDAG vvd
                 where dd._DAG_key = vvd._DAG_key
                     and vvd._Vocab_key = %d
                     and dd.name = \'%s\'''' % (vocab, dag))
     else:
-        result = sql ('''select _DAG_key
+        result = db.sql ('''select _DAG_key
                 from DAG_DAG
                 where name = \'%s\'''' % dag)
     if len(result) != 1:
-        raise error, unknown_dag % dag
+        raise VocloadlibError(unknown_dag % dag)
     return result[0]['_DAG_key']
 
 def getVocabName (
@@ -357,12 +284,12 @@ def getVocabKey (
     # Assumes: nothing
     # Effects: queries the database
     # Throws: 1. error if the given 'vocab' is not in the database
-    #   2. propagates any exceptions raised by sql()
+    #   2. propagates any exceptions raised by db.sql()
 
-    result = sql ('select _Vocab_key from VOC_Vocab where name = \'%s\'' % \
+    result = db.sql ('select _Vocab_key from VOC_Vocab where name = \'%s\'' % \
         vocab)
     if len(result) != 1:
-        raise error, unknown_vocab % vocab
+        raise VocloadlibError(unknown_vocab % vocab)
     return result[0]['_Vocab_key']
 
 def getSynonymTypeKey (
@@ -373,19 +300,19 @@ def getSynonymTypeKey (
     # Assumes: nothing
     # Effects: queries the database
     # Throws: 1. error if the given synonym type is not in the database
-    #   2. propagates any exceptions raised by sql()
+    #   2. propagates any exceptions raised by db.sql()
 
     global SYNONYM_TYPE_MAP 
 
     if not SYNONYM_TYPE_MAP:
-	results = sql ('select _synonymtype_key, synonymtype from MGI_SynonymType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
+	results = db.sql ('select _synonymtype_key, synonymtype from MGI_SynonymType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
 	for r in results:
 		SYNONYM_TYPE_MAP[r['synonymtype'].lower()] = r['_synonymtype_key']
 
     synonymType = synonymType.lower()
 
     if synonymType not in SYNONYM_TYPE_MAP:
-        raise error, unknown_synonymtype % synonymType
+        raise VocloadlibError(unknown_synonymtype % synonymType)
 
     return SYNONYM_TYPE_MAP[synonymType]
 
@@ -400,14 +327,14 @@ def getNoteTypeKey (
     global NOTE_TYPE_MAP 
 
     if not NOTE_TYPE_MAP:
-	results = sql ('select _notetype_key, notetype from MGI_NoteType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
+	results = db.sql ('select _notetype_key, notetype from MGI_NoteType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
 	for r in results:
 		NOTE_TYPE_MAP[r['notetype'].lower()] = r['_notetype_key']
 
     noteType = noteType.lower()
 
     if noteType not in NOTE_TYPE_MAP:
-        raise error, unknown_notetype % noteType
+        raise VocloadlibError(unknown_notetype % noteType)
 
     return NOTE_TYPE_MAP[noteType]
 
@@ -424,7 +351,7 @@ def checkVocabKey (
     #       getVocabAttributes()
 
     if type(vocab_key) != types.IntegerType:
-        raise TypeError, 'Integer vocab key expected'
+        raise TypeError('Integer vocab key expected')
 
     # We use this function to retrieve basic info about the vocab, but we
     # don't need to do anything with it.  (We're just seeing that it
@@ -462,11 +389,11 @@ def countTerms (
     # Returns: integer; count of the terms
     # Assumes: 'vocab' exists in the database
     # Effects: queries the database
-    # Throws: propagates any exceptions from sql()
+    # Throws: propagates any exceptions from db.sql()
 
     if type(vocab) == types.StringType:
         vocab = getVocabKey (vocab)
-    result = sql ('''select count(*) as ct
+    result = db.sql ('''select count(*) as ct
             from VOC_Term
             where _Vocab_key = %d''' % vocab)
     return result[0]['ct']
@@ -480,14 +407,14 @@ def countNodes (
     # Returns: integer; count of the nodes
     # Assumes: 'dag' exists in the database
     # Effects: queries the database
-    # Throws: propagates any exceptions from sql()
+    # Throws: propagates any exceptions from db.sql()
     # Notes: Because DAG names are not required to be unique, we also need
     #   the associated vocab to uniquely identify a DAG when given
     #   a DAG name.
 
     if type(dag) == types.StringType:
         dag = getDagKey (dag, vocab)
-    result = sql ('''select count(*) as ct
+    result = db.sql ('''select count(*) as ct
             from DAG_Node
             where _DAG_key = %d''' % dag)
     return result[0]['ct']
@@ -500,7 +427,7 @@ def getTerms (
     # Returns: dbTable.RecordSet object
     # Assumes: 'vocab' exists in the database
     # Effects: queries the database
-    # Throws: propagates exceptions from sql()
+    # Throws: propagates exceptions from db.sql()
     # Notes: The RecordSet object returned contains dictionaries, each
     #   of which represents a term and its attributes.  The
     #   dictionaries may be accessed using the desired term's key.
@@ -508,7 +435,7 @@ def getTerms (
     if type(vocab) == types.StringType:
         vocab = getVocabKey (vocab)
 
-    [ voc_term, voc_text, voc_synonym, voc_comment ] = sql( [
+    [ voc_term, voc_text, voc_synonym, voc_comment ] = db.sql( [
         '''select *             -- basic term info
         from VOC_Term
         where _Vocab_key = %d''' % vocab,
@@ -598,9 +525,9 @@ def getLabels ():
     # Returns: dictionary mapping labels to their keys
     # Assumes: nothing
     # Effects: queries the database
-    # Throws: propagates any exceptions from sql()
+    # Throws: propagates any exceptions from db.sql()
 
-    result = sql ('select label, _Label_key from DAG_Label')
+    result = db.sql ('select label, _Label_key from DAG_Label')
     labels = {}
     for row in result:
         labels[row['label']] = row['_Label_key']
@@ -630,14 +557,14 @@ def getTermIDs (
     # Returns: see Purpose
     # Assumes: nothing
     # Effects: queries the database
-    # Throws: propagates any exceptions from sql()
+    # Throws: propagates any exceptions from db.sql()
 
     if TERM_IDS:            # if global is set, use it
         return TERM_IDS
 
     if type(vocab) == types.StringType:
         vocab = getVocabKey (vocab)
-    result = sql ('''select acc.accID, vt._Term_key, vt.isObsolete, vt.term
+    result = db.sql ('''select acc.accID, vt._Term_key, vt.isObsolete, vt.term
             from VOC_Term vt, ACC_Accession acc
             where vt._Vocab_key = %d
                 and acc._MGIType_key = %d
@@ -673,7 +600,7 @@ def getTermKeyMap (
 
     for batch in batch_list(termIDs, 100):
 
-	result = sql ('''select acc.accid, t._term_key
+	result = db.sql ('''select acc.accid, t._term_key
 		from ACC_Accession acc join 
 			voc_term t on (
 				t._term_key=acc._object_key
@@ -698,12 +625,12 @@ def getSecondaryTermIDs (
     # Returns: see Purpose
     # Assumes: nothing
     # Effects: queries the database
-    # Throws: propagates any exceptions from sql()
+    # Throws: propagates any exceptions from db.sql()
 
     if type(vocab) == types.StringType:
         vocab = getVocabKey (vocab)
 
-    result = sql ('''select acc.accID, vt._Term_key, vt.term
+    result = db.sql ('''select acc.accID, vt._Term_key, vt.term
             from VOC_Term vt, ACC_Accession acc
             where vt._Vocab_key = %d
                 and acc._MGIType_key = %d
@@ -748,7 +675,7 @@ def readTabFile (
         fields = re.split ('\t', line[:-1])
 
         if len(fields) != num_fields:
-            raise error, bad_line % (filename, lineNbr, line)
+            raise VocloadlibError(bad_line % (filename, lineNbr, line))
 
         # map each tab-delimited field to its corresponding fieldname
         i = 0
@@ -771,9 +698,9 @@ def getMax (
     #   None if 'table' contains no records
     # Assumes: nothing
     # Effects: queries the database
-    # Throws: propagates all exceptions from sql()
+    # Throws: propagates all exceptions from db.sql()
 
-    result = sql ('select max(%s) as mx from %s' % (fieldname, table))
+    result = db.sql ('select max(%s) as mx from %s' % (fieldname, table))
 
     if result[0]['mx'] == None:
 	return 0
@@ -817,11 +744,11 @@ def deleteVocabTerms (
     #          trigger exists
     # Effects: removes records from all tables defined by the
     #          VOC_Term_Delete trigger
-    # Throws:  propagates any exceptions from sqlog() or sql()
+    # Throws:  propagates any exceptions from sqlog() or db.sql()
     # Notes:   VOC_Term has a trigger VOC_Term_Delete which propogates
     #          deletions to all underlying term-related tables
     #          Also, we need to check that we are not in
-    #          a no-load state before calling the sql() function.
+    #          a no-load state before calling the db.sql() function.
 
     sql = 'delete from VOC_Term where _Vocab_key = %d' % vocab_key
     nl_sqlog ( sql, log)
@@ -838,12 +765,12 @@ def deleteDagComponents (
     # Assumes: setupSql() has been called appropriately
     # Effects: removes records from all tables defined by the
     #          DAG_Node_Delete trigger
-    # Throws:  propagates any exceptions from sqlog() or sql()
+    # Throws:  propagates any exceptions from sqlog() or db.sql()
     # Notes:   DAG_Node has a trigger DAG_Node_Delete which propogates
     #          deletions to all underlying dag-related tables,
     #          namely DAG_edge and DAG_Closure, in addition to DAG_Node
     #          Also, we need to check that we are not in
-    #          a no-load state before calling the sql() function.
+    #          a no-load state before calling the db.sql() function.
 
     sql = 'delete from DAG_Node where _DAG_key = %d' % dag_key
     nl_sqlog ( sql, log)
@@ -859,30 +786,6 @@ def isNoLoad ():
 
     return NO_LOAD
 
-def loadBCPFile ( bcpFileName, bcpLogFileName, bcpErrorFileName, tableName, passwordFile ):
-    # Purpose: Physically loads BCP files to the database via a system command to bcp
-    # Returns: nothing
-    # Assumes: bcp is available and exists in PATH
-    # Effects: loads data to whatever table it is executing on
-    # Raises:  raises an exception if bcp returns a non-zero (i.e.,
-    #          value
-
-    bcpCmd = '%s/bin/bcpin.csh %s %s %s \'\' %s \'|\' \'\\n\' mgd >> %s' % \
-	(
-	    os.environ['PG_DBUTILS'],
-	    db.get_sqlServer(),
-	    db.get_sqlDatabase(),
-	    tableName,
-	    bcpFileName,
-	    bcpLogFileName
-	)
-
-    print bcpCmd
-    rc = os.system( bcpCmd )
-    if rc:
-       raise 'bcp error', '%s %s' % (bcpCmd , rc)
-    return
-
 ###--- Private Functions ---###
 
 vocab_info_cache = {}   # used as a cache for 'getVocabAttributes()' function
@@ -897,7 +800,7 @@ def getVocabAttributes (
     #   integer _LogicalDB_key, string name, integer vocab key)
     # Assumes: 'vocab' exists in the database
     # Effects: queries the database
-    # Throws: 1. propagates any exceptions from sql();
+    # Throws: 1. propagates any exceptions from db.sql();
     #   2. raises 'error' if 'vocab' is not in the database
 
     global vocab_info_cache
@@ -908,12 +811,12 @@ def getVocabAttributes (
     # get it from the database if it's not in the cache already
 
     if not vocab_info_cache.has_key (vocab):
-        result = sql('''select isSimple, isPrivate, _LogicalDB_key,
+        result = db.sql('''select isSimple, isPrivate, _LogicalDB_key,
                     _Vocab_key, name
                 from VOC_Vocab
                 where _Vocab_key = %d''' % vocab)
         if len(result) != 1:
-            raise error, unknown_vocab_key % vocab
+            raise VocloadlibError(unknown_vocab_key % vocab)
         r = result[0]
 
         # store resulting info in the cache
