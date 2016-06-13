@@ -45,6 +45,8 @@
 #
 # History
 #
+# 06/13/2015	lec
+#	- TR12345/loadDAG.py/def goFull()/do not add edge if node was not created
 #
 # 05/17/2004 lec
 #	- TR 6806/enhanced DAG_Closure table.  Added _AncestorObject_key and _DescendentObject_key
@@ -496,8 +498,9 @@ class DAGLoad:
 
             # finally, if this child has a parent then we need to
             # add the edge between them
+	    # do not add edge if node as not created
 
-            if parent_key:
+            if parent_key and nodesAdded.has_key (parent_key):
                 self.addEdge (self.objToNode[parent_key],
                     child_node_key, edge_label_key,
                     len(self.childrenOf[parent_key]))
