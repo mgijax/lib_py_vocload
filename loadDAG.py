@@ -63,6 +63,7 @@ import Log      # MGI-written Python libraries
 import vocloadlib
 import html
 import mgi_utils
+import db
 
 DEBUG = 0
 mgiType = os.environ['MGITYPE']
@@ -194,7 +195,7 @@ class DAGLoad:
 
         # find vocab key and name (propagate error if invalid)
 
-        result = vocloadlib.sql (
+        result = db.sql (
             '''select voc.name, voc._Vocab_key
             from VOC_VocabDAG vocdag, VOC_Vocab voc
             where vocdag._DAG_key = %d
@@ -313,13 +314,13 @@ class DAGLoad:
 
         if not vocloadlib.NO_LOAD:
            if self.loadNodeBCP:
-              vocloadlib.loadBCPFile ( self.dagNodeBCPFileName, bcpLogFile, bcpErrorFile, 'DAG_Node', self.passwordFile  )
+              db.bcp(self.dagNodeBCPFileName, 'DAG_Node', delimiter='|')
 
            if self.loadEdgeBCP:
-              vocloadlib.loadBCPFile ( self.dagEdgeBCPFileName, bcpLogFile, bcpErrorFile, 'DAG_Edge', self.passwordFile  )
+              db.bcp(self.dagEdgeBCPFileName, 'DAG_Edge', delimiter='|')
 
            if self.loadClosureBCP:
-              vocloadlib.loadBCPFile ( self.dagClosureBCPFileName, bcpLogFile, bcpErrorFile, 'DAG_Closure', self.passwordFile  )
+              db.bcp(self.dagClosureBCPFileName, 'DAG_Closure', delimiter='|')
 
 
     def closeBCPFiles ( self ):
@@ -775,4 +776,5 @@ if __name__ == '__main__':
     vocloadlib.setupSql (server, database, username, password)
     load = DAGLoad (input_file, mode, dag_key, log, passwordfilename)
     load.go()
+    db.commit()
     vocloadlib.unsetupSql ()
