@@ -25,9 +25,6 @@ import os
 import dbTable  # dbTable library
 import db
 
-db.setAutoTranslate(False)
-db.setAutoTranslateBE(False)
-
 ###--- Exceptions ---###
 
 class VocloadlibError(Exception):
