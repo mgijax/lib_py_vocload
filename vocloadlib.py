@@ -441,7 +441,7 @@ def getTerms (
         from VOC_Text vx, VOC_Term vt
         where vt._Vocab_key = %d
             and vt._Term_key = vx._Term_key
-        order by vx._Term_key, vx.sequenceNum''' % vocab,
+        order by vx._Term_key''' % vocab,
 
         '''select vs.*, vst.synonymType   -- synonyms/synonymTypes for term
         from MGI_Synonym vs, MGI_SynonymType vst, VOC_Term vt
