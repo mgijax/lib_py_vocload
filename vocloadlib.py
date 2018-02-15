@@ -432,16 +432,10 @@ def getTerms (
     if type(vocab) == types.StringType:
         vocab = getVocabKey (vocab)
 
-    [ voc_term, voc_text, voc_synonym, voc_comment ] = db.sql( [
+    [ voc_term, voc_synonym, voc_comment ] = db.sql( [
         '''select *             -- basic term info
         from VOC_Term
         where _Vocab_key = %d''' % vocab,
-
-        '''select vx.*              -- text for term
-        from VOC_Text vx, VOC_Term vt
-        where vt._Vocab_key = %d
-            and vt._Term_key = vx._Term_key
-        order by vx._Term_key''' % vocab,
 
         '''select vs.*, vst.synonymType   -- synonyms/synonymTypes for term
         from MGI_Synonym vs, MGI_SynonymType vst, VOC_Term vt
@@ -460,14 +454,7 @@ def getTerms (
 	order by n._Object_key, nc.sequenceNum''' % (vocab, os.environ['VOCAB_COMMENT_KEY'])
         ] )
     
-    # build a dictionary of 'notes', mapping a term key to a string of notes.  
-
-    notes = {}
-    for row in voc_text:
-        term_key = row['_Term_key']
-        notes[term_key] = row['note']
-
-    # build a dictionary of 'comments', mapping a term key to a string of notes.  
+    # build a dictionary of 'comments', mapping a term key to a string of comments/notes
 
     comments = {}
     for row in voc_comment:
@@ -488,17 +475,11 @@ def getTerms (
         synonymTypes[term_key].append (string.upper(row['synonymType']))
         # synonyms[term_key].append ([row['_Synonym_key'], row['synonym']])
 
-    # Each dictionary in 'voc_term' represents one term and contains all
-    # its basic attributes.  We step through the list to add any 'notes'
-    # 'comments' and 'synonyms' for each.
+    # Each dictionary in 'voc_term' represents one term and contains all its basic attributes.  
+    # We step through the list to add any 'comments' and 'synonyms' for each.
 
     for row in voc_term:
         term_key = row['_Term_key']
-
-        if notes.has_key (term_key):
-            row['notes'] = notes[term_key]
-        else:
-            row['notes'] = None
 
         if comments.has_key (term_key):
             row['comments'] = comments[term_key]
