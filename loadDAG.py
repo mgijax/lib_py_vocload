@@ -457,7 +457,7 @@ class DAGLoad:
             # this data line and proceed with the rest of the load
 
             if errors:
-                msg = 'Input File: %s - ERROR: Skipped line %d:' % ( self.filename, lineNum )
+                msg = 'Input File: %s - Skipped line %d:' % ( self.filename, lineNum )
                 for error in errors:
                     msg = msg + " " + error
                 self.writeDiscrepancyFile ( childID, msg )
