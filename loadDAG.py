@@ -61,7 +61,7 @@ import os
 
 import Log      # MGI-written Python libraries
 import vocloadlib
-import html
+import voc_html
 import mgi_utils
 import db
 
@@ -270,12 +270,12 @@ class DAGLoad:
         self.dagDiscrepFile     = open( self.dagDiscrepFileName     , 'w')
 
         # now write HTML header information
-        self.dagDiscrepFile.write ( html.getStartHTMLDocumentHTML ( "DAG Discrepancy Report" ) )
-        self.dagDiscrepFile.write ( html.getStartTableHTML () )
-        self.dagDiscrepFile.write ( html.getStartTableRowHTML () )
-        self.dagDiscrepFile.write ( html.getTableHeaderLabelHTML ( "Accession ID" ) )
-        self.dagDiscrepFile.write ( html.getTableHeaderLabelHTML ( "Message" ) )
-        self.dagDiscrepFile.write ( html.getEndTableRowHTML () )
+        self.dagDiscrepFile.write ( voc_html.getStartHTMLDocumentHTML ( "DAG Discrepancy Report" ) )
+        self.dagDiscrepFile.write ( voc_html.getStartTableHTML () )
+        self.dagDiscrepFile.write ( voc_html.getStartTableRowHTML () )
+        self.dagDiscrepFile.write ( voc_html.getTableHeaderLabelHTML ( "Accession ID" ) )
+        self.dagDiscrepFile.write ( voc_html.getTableHeaderLabelHTML ( "Message" ) )
+        self.dagDiscrepFile.write ( voc_html.getEndTableRowHTML () )
 
     def closeDiscrepancyFile ( self ):
         # Purpose: writes HTML tags to close the table and document tags
@@ -286,8 +286,8 @@ class DAGLoad:
         # Throws:  propagates all exceptions closing files
 
         # write html tags to end the table and html document
-        self.dagDiscrepFile.write ( html.getEndTableHTML () )
-        self.dagDiscrepFile.write ( html.getEndHTMLDocumentHTML ( ) )
+        self.dagDiscrepFile.write ( voc_html.getEndTableHTML () )
+        self.dagDiscrepFile.write ( voc_html.getEndHTMLDocumentHTML ( ) )
 
         # now, close the file
         self.dagDiscrepFile.close ()
@@ -298,10 +298,10 @@ class DAGLoad:
         # Assumes: discrepancy file is open and writeable
         # Effects: report output
         # Throws:  propagates any exceptions raised 
-        self.dagDiscrepFile.write ( html.getStartTableRowHTML () )
-        self.dagDiscrepFile.write ( html.getCellHTML ( accID ) )
-        self.dagDiscrepFile.write ( html.getCellHTML ( msg   ) )
-        self.dagDiscrepFile.write ( html.getEndTableRowHTML () )
+        self.dagDiscrepFile.write ( voc_html.getStartTableRowHTML () )
+        self.dagDiscrepFile.write ( voc_html.getCellHTML ( accID ) )
+        self.dagDiscrepFile.write ( voc_html.getCellHTML ( msg   ) )
+        self.dagDiscrepFile.write ( voc_html.getEndTableRowHTML () )
 
     def loadBCPFiles (self):
         # Purpose: runs the BCP load
