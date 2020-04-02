@@ -35,7 +35,6 @@
 
 import sys
 import re
-import string
 import types
 import vocloadDAG
 

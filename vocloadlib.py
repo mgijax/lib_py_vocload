@@ -18,7 +18,6 @@ import sys      # standard Python modules
 import time
 import types
 import re
-import string
 import os
 
 import dbTable  # dbTable library
