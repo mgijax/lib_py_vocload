@@ -1,4 +1,3 @@
-#!/usr/local/bin/python
 
 # Name: vocloadlib.py
 #
@@ -59,10 +58,10 @@ NOTE_TYPE_MAP = {}
 
 ###--- Functions ---###
 
-def setupSql (server,   # string; name of database server
-    database,   # string; name of database
-    username,   # string; user with full permissions on database
-    password    # string; password for 'username'
+def setupSql (server,   # str. name of database server
+    database,   # str. name of database
+    username,   # str. user with full permissions on database
+    password    # str. password for 'username'
     ):
     # Purpose: initialize the 'db' module to use the desired database
     #   login information
@@ -88,7 +87,7 @@ def unsetupSql ():
     return
 
 def sqlog (
-    commands,   # string of SQL, or list of SQL strings
+    commands,   # str.of SQL, or list of SQL str.
     log     # Log.Log object to which to log the 'commands'
     ):
     # Purpose: write the given 'commands' to the given 'log', then execute
@@ -117,7 +116,7 @@ def setNoload (
     return
 
 def nl_sqlog (
-    commands,   # string of SQL, or list of SQL strings
+    commands,   # str.of SQL, or list of SQL str.
     log     # Log.Log object to which to log the 'commands'
     ):
     # Purpose: write the given 'commands' to the given 'log'.  If we are
@@ -203,11 +202,11 @@ def getAnyTermMarkerCrossReferences (
                 and    a._Object_key    = m._Marker_key
             ''' % ( termKey, annotationKey ))
     except:
-       raise VocloadlibError('xref error', sys.exc_value)
+       raise VocloadlibError('xref error', sys.exc_info()[1])
     return results
 
 def timestamp (
-    label = 'Current time:'     # string; preface to the timestamp
+    label = 'Current time:'     # str. preface to the timestamp
     ):
     # Purpose: return a timestamp including the given 'label' followed by
     #   the current date and time in the format mm/dd/yyyy hh:mm:ss
@@ -234,8 +233,8 @@ def getDagName (
     return result[0]['name']
 
 def getDagKey (
-    dag,        # string; corresponds to DAG_DAG.name
-    vocab = None    # string vocab name or integer vocab key
+    dag,        # str. corresponds to DAG_DAG.name
+    vocab = None    # str.vocab name or integer vocab key
     ):
     # Purpose: return the _DAG_key for the given 'dag' name
     # Returns: integer
@@ -247,7 +246,7 @@ def getDagKey (
     #   values, we may also need to know which 'vocab' it relates to.
 
     if vocab:
-        if type(vocab) == types.StringType:
+        if type(vocab) == bytes:
             vocab = getVocabKey (vocab)
         result = db.sql ('''select dd._DAG_key
                 from DAG_DAG dd, VOC_VocabDAG vvd
@@ -274,7 +273,7 @@ def getVocabName (
     return getVocabAttributes (vocab)[3]
 
 def getVocabKey (
-    vocab       # string; vocab name from VOC_Vocab.name
+    vocab       # str. vocab name from VOC_Vocab.name
     ):
     # Purpose: return the vocabulary key for the given 'vocab' name
     # Returns: integer
@@ -290,7 +289,7 @@ def getVocabKey (
     return result[0]['_Vocab_key']
 
 def getSynonymTypeKey (
-    synonymType       # string; synonym type from MGI_SynonymType.synonymType
+    synonymType       # str. synonym type from MGI_SynonymType.synonymType
     ):
     # Purpose: return the synonym type key for the given 'vocab' synonym type
     # Returns: integer
@@ -302,9 +301,9 @@ def getSynonymTypeKey (
     global SYNONYM_TYPE_MAP 
 
     if not SYNONYM_TYPE_MAP:
-	results = db.sql ('select _synonymtype_key, synonymtype from MGI_SynonymType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
-	for r in results:
-		SYNONYM_TYPE_MAP[r['synonymtype'].lower()] = r['_synonymtype_key']
+        results = db.sql ('select _synonymtype_key, synonymtype from MGI_SynonymType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
+        for r in results:
+                SYNONYM_TYPE_MAP[r['synonymtype'].lower()] = r['_synonymtype_key']
 
     synonymType = synonymType.lower()
 
@@ -318,15 +317,15 @@ def getNoteTypeKey (
     ):
     """
     Retrieves the _notetype_key for the given notetype
-    	using the mgitype_key for voc_term
+        using the mgitype_key for voc_term
     """
 
     global NOTE_TYPE_MAP 
 
     if not NOTE_TYPE_MAP:
-	results = db.sql ('select _notetype_key, notetype from MGI_NoteType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
-	for r in results:
-		NOTE_TYPE_MAP[r['notetype'].lower()] = r['_notetype_key']
+        results = db.sql ('select _notetype_key, notetype from MGI_NoteType where _MGIType_key = %d' % VOCABULARY_TERM_TYPE)
+        for r in results:
+                NOTE_TYPE_MAP[r['notetype'].lower()] = r['_notetype_key']
 
     noteType = noteType.lower()
 
@@ -358,7 +357,7 @@ def checkVocabKey (
     return
 
 def isSimple (
-    vocab   # integer vocabulary key or string vocabulary name
+    vocab   # integer vocabulary key or str.vocabulary name
     ):
     # Purpose: determine if 'vocab' is a simple vocabulary or a DAG
     # Returns: boolean (0/1); returns 1 if 'vocab' is a simple vocabulary
@@ -369,7 +368,7 @@ def isSimple (
     return getVocabAttributes (vocab)[0]
 
 def isPrivate (
-    vocab   # integer vocabulary key or string vocabulary name
+    vocab   # integer vocabulary key or str.vocabulary name
     ):
     # Purpose: determine if 'vocab' is private
     # Returns: boolean (0/1); returns 1 if 'vocab' is private
@@ -380,7 +379,7 @@ def isPrivate (
     return getVocabAttributes (vocab)[1]
 
 def countTerms (
-    vocab   # integer vocabulary key or string vocabulary name
+    vocab   # integer vocabulary key or str.vocabulary name
     ):
     # Purpose: count the number of terms in the given 'vocab'
     # Returns: integer; count of the terms
@@ -388,7 +387,7 @@ def countTerms (
     # Effects: queries the database
     # Throws: propagates any exceptions from db.sql()
 
-    if type(vocab) == types.StringType:
+    if type(vocab) == bytes:
         vocab = getVocabKey (vocab)
     result = db.sql ('''select count(*) as ct
             from VOC_Term
@@ -396,8 +395,8 @@ def countTerms (
     return result[0]['ct']
 
 def countNodes (
-    dag,        # integer DAG key or string DAG name
-    vocab = None    # integer vocab key or string vocab name; required if
+    dag,        # integer DAG key or str.DAG name
+    vocab = None    # integer vocab key or str.vocab name; required if
             # 'dag' is the name of the DAG
     ):
     # Purpose: count the number of nodes in the given 'dag'
@@ -409,7 +408,7 @@ def countNodes (
     #   the associated vocab to uniquely identify a DAG when given
     #   a DAG name.
 
-    if type(dag) == types.StringType:
+    if type(dag) == bytes:
         dag = getDagKey (dag, vocab)
     result = db.sql ('''select count(*) as ct
             from DAG_Node
@@ -417,7 +416,7 @@ def countNodes (
     return result[0]['ct']
 
 def getTerms (
-    vocab   # integer vocabulary key or string vocabulary name
+    vocab   # integer vocabulary key or str.vocabulary name
     ):
     # Purpose: retrieve the terms for the given 'vocab' and their
     #   respective attributes
@@ -429,7 +428,7 @@ def getTerms (
     #   of which represents a term and its attributes.  The
     #   dictionaries may be accessed using the desired term's key.
 
-    if type(vocab) == types.StringType:
+    if type(vocab) == bytes:
         vocab = getVocabKey (vocab)
 
     [ voc_term, voc_synonym, voc_comment ] = db.sql( [
@@ -445,16 +444,16 @@ def getTerms (
             and vs._SynonymType_key = vst._SynonymType_key
         order by vs.synonym''' % (vocab, VOCABULARY_TERM_TYPE),
 
-	'''select n._Object_key, nc.note, nc.sequenceNum
-	from VOC_Term vt, MGI_Note n, MGI_NoteChunk nc
-	where vt._Vocab_key = %d
-	and vt._Term_key = n._Object_key
-	and n._NoteType_key = %s
-	and n._Note_key = nc._Note_key
-	order by n._Object_key, nc.sequenceNum''' % (vocab, os.environ['VOCAB_COMMENT_KEY'])
+        '''select n._Object_key, nc.note, nc.sequenceNum
+        from VOC_Term vt, MGI_Note n, MGI_NoteChunk nc
+        where vt._Vocab_key = %d
+        and vt._Term_key = n._Object_key
+        and n._NoteType_key = %s
+        and n._Note_key = nc._Note_key
+        order by n._Object_key, nc.sequenceNum''' % (vocab, os.environ['VOCAB_COMMENT_KEY'])
         ] )
     
-    # build a dictionary of 'comments', mapping a term key to a string of comments/notes
+    # build a dictionary of 'comments', mapping a term key to a str.of comments/notes
 
     comments = {}
     for row in voc_comment:
@@ -462,17 +461,17 @@ def getTerms (
         comments[term_key] = row['note']
 
     # build a dictionary of 'synonyms', mapping a term key to a list of
-    # strings (each of which is one synonym)
+    # str. (each of which is one synonym)
 
     synonyms = {}
     synonymTypes = {}
     for row in voc_synonym:
         term_key = row['_Object_key']
-        if not synonyms.has_key (term_key):
+        if term_key not in synonyms:
             synonyms[term_key] = []
             synonymTypes[term_key] = []
         synonyms[term_key].append (row['synonym'])
-        synonymTypes[term_key].append (string.upper(row['synonymType']))
+        synonymTypes[term_key].append (str.upper(row['synonymType']))
         # synonyms[term_key].append ([row['_Synonym_key'], row['synonym']])
 
     # Each dictionary in 'voc_term' represents one term and contains all its basic attributes.  
@@ -481,12 +480,12 @@ def getTerms (
     for row in voc_term:
         term_key = row['_Term_key']
 
-        if comments.has_key (term_key):
+        if term_key in comments:
             row['comments'] = comments[term_key]
         else:
             row['comments'] = None
 
-        if synonyms.has_key (term_key):
+        if term_key in synonyms:
             row['synonyms'] = synonyms[term_key]
             row['synonymTypes'] = synonymTypes[term_key]
         else:
@@ -528,7 +527,7 @@ def setTermIDs (
     return
 
 def getTermIDs (
-    vocab       # integer vocabulary key or string vocabulary name
+    vocab       # integer vocabulary key or str.vocabulary name
     ):
     # Purpose: get a dictionary which maps from a primary accession ID
     #   to its associated term key and isObsolete value
@@ -540,7 +539,7 @@ def getTermIDs (
     if TERM_IDS:            # if global is set, use it
         return TERM_IDS
 
-    if type(vocab) == types.StringType:
+    if type(vocab) == bytes:
         vocab = getVocabKey (vocab)
     result = db.sql ('''select acc.accID, vt._Term_key, vt.isObsolete, vt.term
             from VOC_Term vt, ACC_Accession acc
@@ -570,7 +569,7 @@ def getTermKeyMap (
     def batch_list(iterable, n = 1):
        l = len(iterable)
        for ndx in range(0, l, n):
-	   yield iterable[ndx:min(ndx+n, l)]
+           yield iterable[ndx:min(ndx+n, l)]
 
     term_mgitype_key = 13
 
@@ -578,25 +577,25 @@ def getTermKeyMap (
 
     for batch in batch_list(termIDs, 100):
 
-	result = db.sql ('''select acc.accid, t._term_key
-		from ACC_Accession acc join 
-			voc_term t on (
-				t._term_key=acc._object_key
-				and acc.preferred=1
-				and acc._mgitype_key=%d
-			) join
-			voc_vocab v on (v._vocab_key=t._vocab_key)
-		where v.name='%s' 
-			and acc.accid in ('%s') ''' % \
-		(term_mgitype_key, vocabName, '\',\''.join(batch) ))
+        result = db.sql ('''select acc.accid, t._term_key
+                from ACC_Accession acc join 
+                        voc_term t on (
+                                t._term_key=acc._object_key
+                                and acc.preferred=1
+                                and acc._mgitype_key=%d
+                        ) join
+                        voc_vocab v on (v._vocab_key=t._vocab_key)
+                where v.name='%s' 
+                        and acc.accid in ('%s') ''' % \
+                (term_mgitype_key, vocabName, '\',\''.join(batch) ))
 
-	for row in result:
-	    termKeyMap[row['accid']] = row['_term_key']
+        for row in result:
+            termKeyMap[row['accid']] = row['_term_key']
 
     return termKeyMap
 
 def getSecondaryTermIDs (
-    vocab       # integer vocabulary key or string vocabulary name
+    vocab       # integer vocabulary key or str.vocabulary name
     ):
     # Purpose: get a dictionary which maps from a secondary accession ID
     #   to its associated term key
@@ -605,7 +604,7 @@ def getSecondaryTermIDs (
     # Effects: queries the database
     # Throws: propagates any exceptions from db.sql()
 
-    if type(vocab) == types.StringType:
+    if type(vocab) == bytes:
         vocab = getVocabKey (vocab)
 
     result = db.sql ('''select acc.accID, vt._Term_key, vt.term
@@ -624,8 +623,8 @@ def getSecondaryTermIDs (
     return ids
 
 def readTabFile (
-    filename,   # string; path to a tab-delimited file to read
-    fieldnames  # list of strings; each is the name of one field
+    filename,   # str. path to a tab-delimited file to read
+    fieldnames  # list of str.; each is the name of one field
     ):
     # Purpose: read a tab-delimited file and convert each line to a
     #   dictionary mapping from fieldnames to values
@@ -668,8 +667,8 @@ def readTabFile (
     return lines
 
 def getMax (
-    fieldname,  # string; name of a field in 'table' in the database
-    table       # string; name of a table in the database
+    fieldname,  # str. name of a field in 'table' in the database
+    table       # str. name of a table in the database
     ):
     # Purpose: return the maximum value of 'fieldname' in 'table'
     # Returns: depends on the datatype of 'fieldname' in 'table'; will be
@@ -681,12 +680,12 @@ def getMax (
     result = db.sql ('select max(%s) as mx from %s' % (fieldname, table))
 
     if result[0]['mx'] == None:
-	return 0
+        return 0
     else:
-	return result[0]['mx']
+        return result[0]['mx']
 
 def getLogicalDBkey (
-    vocab       # integer vocabulary key or string vocabulary name
+    vocab       # integer vocabulary key or str.vocabulary name
     ):
     # Purpose: retrieve the logical database key (_LogicalDB_key) for
     #   the given 'vocab'
@@ -700,12 +699,12 @@ def getLogicalDBkey (
 def setNull (
     s      
     ):
-    # Purpose: set any strings set to "null" to ""
+    # Purpose: set any str. set to "null" to ""
     # Returns: string
     # Assumes: nothing
     # Effects: nothing
     # Throws: nothing
-    # Notes: This function is used to prepare strings to be sent as part
+    # Notes: This function is used to prepare str. to be sent as part
     #   of a BCP command to Sybase.  
     if s == 'null':
        s = ""
@@ -769,13 +768,13 @@ def isNoLoad ():
 vocab_info_cache = {}   # used as a cache for 'getVocabAttributes()' function
 
 def getVocabAttributes (
-    vocab       # integer vocabulary key or string vocabulary name
+    vocab       # integer vocabulary key or str.vocabulary name
     ):
     # PRIVATE FUNCTION
     #
     # Purpose: retrieve some basic info for the given 'vocab'
     # Returns: tuple containing: (boolean isSimple, boolean isPrivate,
-    #   integer _LogicalDB_key, string name, integer vocab key)
+    #   integer _LogicalDB_key, str.name, integer vocab key)
     # Assumes: 'vocab' exists in the database
     # Effects: queries the database
     # Throws: 1. propagates any exceptions from db.sql();
@@ -783,12 +782,12 @@ def getVocabAttributes (
 
     global vocab_info_cache
 
-    if type(vocab) == types.StringType: # ensure we work w/ the key
+    if type(vocab) == bytes: # ensure we work w/ the key
         vocab = getVocabKey (vocab)
 
     # get it from the database if it's not in the cache already
 
-    if not vocab_info_cache.has_key (vocab):
+    if vocab not in vocab_info_cache:
         result = db.sql('''select isSimple, isPrivate, _LogicalDB_key,
                     _Vocab_key, name
                 from VOC_Vocab

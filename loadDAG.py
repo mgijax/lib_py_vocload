@@ -1,4 +1,3 @@
-#!/usr/local/bin/python
 
 #
 # Program: loadDAG.py
@@ -100,7 +99,7 @@ INSERT_NODE = '''insert DAG_Node (_DAG_key, _Node_key, _Object_key, _Label_key)
     values (%d, %d, %d, %d)'''
 
 BCP_INSERT_NODE = '''%%d|%%d|%%d|%%d|%s|%s\n''' % \
-	(CDATE, CDATE)
+        (CDATE, CDATE)
 
 INSERT_EDGE = '''insert DAG_Edge (_Edge_key, _DAG_key, _Parent_key,
         _Child_key, _Label_key, sequenceNum)
@@ -108,13 +107,13 @@ INSERT_EDGE = '''insert DAG_Edge (_Edge_key, _DAG_key, _Parent_key,
         %d, %d, %d)'''
 
 BCP_INSERT_EDGE = '''%%d|%%d|%%d|%%d|%%d|%%d|%s|%s\n''' % \
-	(CDATE, CDATE)
+        (CDATE, CDATE)
 
 INSERT_CLOSURE = '''insert DAG_Closure (_DAG_key, _MGIType_key, _Ancestor_key, _Descendent_key, _AncestorObject_key, _DescendentObject_key, _AncestorLabel_key, _DescendentLabel_key)
     values (%d, %s, %d, %d, %d, %d)'''
 
 BCP_INSERT_CLOSURE = '''%%d|%%s|%%d|%%d|%%d|%%d|%%d|%%d|%s|%s\n''' % \
-	(CDATE, CDATE)
+        (CDATE, CDATE)
 
 ###--- Classes ---###
 
@@ -137,9 +136,9 @@ class DAGLoad:
     ###--- Public Methods ---###
 
     def __init__ (self,
-        filename,   # string; path to the file containing DAG info
-        mode,       # string; 'full' or 'incremental' load?
-        dag,        # string dag name or integer dag key; the DAG
+        filename,   # str. path to the file containing DAG info
+        mode,       # str. 'full' or 'incremental' load?
+        dag,        # str.dag name or integer dag key; the DAG
                 #   to be loaded
         log,     # log.Log object; what to use for logging
         passwordFile
@@ -186,7 +185,7 @@ class DAGLoad:
 
         # find DAG key and name (propagate error if invalid)
 
-        if type(dag) == types.StringType:
+        if type(dag) == bytes:
             self.dag_name = dag
             self.dag_key = vocloadlib.getDagKey (dag)
         else:
@@ -214,7 +213,7 @@ class DAGLoad:
         # check that the mode is valid
 
         if mode not in [ 'full', 'incremental' ]:
-            raise error, unknown_mode % mode
+            raise error(unknown_mode % mode)
         self.mode = mode
 
         # remember the filename and read the data file
@@ -228,7 +227,7 @@ class DAGLoad:
         self.mgitype_key = vocloadlib.VOCABULARY_TERM_TYPE
 
         self.objToNode = {} # object key -> node key
-	self.nodeLabel = {} # node key -> label key
+        self.nodeLabel = {} # node key -> label key
         self.childrenOf = {}    # parent key -> [ children's keys ]
         self.max_node_key = None    # max assigned _Node_key
         self.max_edge_key = None    # max assigned _Edge_key
@@ -246,14 +245,14 @@ class DAGLoad:
 
         self.openDiscrepancyFile()
         if self.mode == 'full':
-	    self.goFull()
+            self.goFull()
         else:
-	    self.goIncremental()
+            self.goIncremental()
         self.closeDiscrepancyFile()
         self.closeBCPFiles()
         self.loadBCPFiles()
 
-	self.log.writeline ('=' * 40)
+        self.log.writeline ('=' * 40)
 
         return
 
@@ -391,17 +390,17 @@ class DAGLoad:
             childID = record['childID']
             node_label = record['node_label']
             edge_label = record['edge_label']
-            parentID = string.rstrip(record['parentID'])
+            parentID = str.rstrip(record['parentID'])
 
             # check that IDs and labels are valid, and look up the corresponding keys:
 
-            errors = [] # list of strings (data errors found)
+            errors = [] # list of str. (data errors found)
 
             # if we have a valid childID, look up its key:
 
             if not childID:
                 errors.append ('Child ID is required')
-            elif not ids.has_key (childID):
+            elif childID not in ids:
                 errors.append ('Unknown child ID %s' % childID)
             else:
                 [termKey, isObsolete, term, termFound] = ids[childID]
@@ -414,7 +413,7 @@ class DAGLoad:
                 parent_key = None
                 if child_key not in self.roots:
                     self.roots.append (child_key)
-            elif not ids.has_key (parentID):
+            elif parentID not in ids:
                 parent_key = None
                 errors.append ('Unknown parent ID %s' % parentID)
             else:
@@ -427,7 +426,7 @@ class DAGLoad:
 
             if not node_label:
                 node_label_key = vocloadlib.NOT_SPECIFIED
-            elif not labels.has_key (node_label):
+            elif node_label not in labels:
                 errors.append ('Unknown node label "%s"' % node_label)
             else:
                 node_label_key = labels[node_label]
@@ -437,7 +436,7 @@ class DAGLoad:
 
             if not edge_label:
                 edge_label_key = vocloadlib.NOT_SPECIFIED
-            elif not labels.has_key (edge_label):
+            elif edge_label not in labels:
                 errors.append ('Unknown edge label "%s"' % edge_label)
             else:
                 edge_label_key = labels[edge_label]
@@ -447,7 +446,7 @@ class DAGLoad:
             # this, we examine the list of children for the given
             # parent key.
 
-            if parent_key and self.childrenOf.has_key(parent_key):
+            if parent_key and parent_key in self.childrenOf:
                 if child_key in self.childrenOf[parent_key]:
                     errors.append (
                         'Parent has duplicate child')
@@ -468,7 +467,7 @@ class DAGLoad:
             # its parent, if it has one
 
             if parent_key:
-                if not self.childrenOf.has_key (parent_key):
+                if parent_key not in self.childrenOf:
                     self.childrenOf[parent_key] = []
                 self.childrenOf[parent_key].append (child_key)
 
@@ -477,11 +476,11 @@ class DAGLoad:
             # keys.  If either (or both) have no node key, then
             # we must allocate a new one.
 
-            if not self.objToNode.has_key (child_key):
+            if child_key not in self.objToNode:
                 self.max_node_key = self.max_node_key + 1
                 self.objToNode [child_key] = self.max_node_key
 
-            if parent_key and not self.objToNode.has_key (parent_key):
+            if parent_key and parent_key not in self.objToNode:
                 self.max_node_key = self.max_node_key + 1
                 self.objToNode [parent_key] = self.max_node_key
 
@@ -489,10 +488,10 @@ class DAGLoad:
             # child, then we need to add one now
 
             child_node_key = self.objToNode [child_key]
-            if not nodesAdded.has_key (child_node_key):
+            if child_node_key not in nodesAdded:
                 self.addNode (child_node_key, child_key, node_label_key)
                 nodesAdded[child_node_key] = 1
-		self.nodeLabel [child_node_key] = node_label_key
+                self.nodeLabel [child_node_key] = node_label_key
 
             # finally, if this child has a parent then we need to
             # add the edge between them
@@ -558,17 +557,17 @@ class DAGLoad:
         #   dag[0] = list of parent-less term keys
         #   dag[n] = list of child terms of term n, for n>0
         dag = [self.roots]
-	#self.log.writeline ('dag = [self.roots] %s' % dag)
+        #self.log.writeline ('dag = [self.roots] %s' % dag)
         dag = dag + [ [] ] * self.max_node_key
-	#self.log.writeline('DAG before:')
-	#self.log.writeline(dag)
-	#self.log.writeline(self.childrenOf.items() )
-	#self.log.writeline('ITERATE THRU childrenof.items()')
-        for (object_key, children) in self.childrenOf.items():
-	    #self.log.writeline('objectKey: %s, children %s' % (object_key, children))
+        #self.log.writeline('DAG before:')
+        #self.log.writeline(dag)
+        #self.log.writeline(self.childrenOf.items() )
+        #self.log.writeline('ITERATE THRU childrenof.items()')
+        for (object_key, children) in list(self.childrenOf.items()):
+            #self.log.writeline('objectKey: %s, children %s' % (object_key, children))
             if object_key:
                 dag[object_key] = children
-	#self.log.writeline('DAG after:')
+        #self.log.writeline('DAG after:')
         #self.log.writeline(dag)
         # now actually compute the closure...
 
@@ -577,11 +576,11 @@ class DAGLoad:
         self.log.writeline (vocloadlib.timestamp ('Stop Closure Computation: '))
 
         # and add each ancestor-descendant edge to the database.
-	# we store both the _Node_key and the _Term_key for the Ancestor and Descendent in the DAG_Closure table
-	# so, we need to translate each _Term_key to its appropriate _Node_key
-        for (node, children) in closure.items():
-	    if DEBUG:
-		self.log.writeline('Node: %s Children %s' % (node, children))
+        # we store both the _Node_key and the _Term_key for the Ancestor and Descendent in the DAG_Closure table
+        # so, we need to translate each _Term_key to its appropriate _Node_key
+        for (node, children) in list(closure.items()):
+            if DEBUG:
+                self.log.writeline('Node: %s Children %s' % (node, children))
             if node > 0:
                for child in children:
                    # write the BCP file 
@@ -722,7 +721,7 @@ def getNodeClosure (
     # Notes: This function should only be invoked by the getClosure() 
     #   function, and should not be invoked separately.
 
-    if closure.has_key (i):     # if we've already computed the
+    if i in closure:     # if we've already computed the
         return          # closure of this node, bail out
 
     # the closure of node 'i' will include all the children of 'i', plus
@@ -742,20 +741,20 @@ if __name__ == '__main__':
     try:
         options, args = getopt.getopt (sys.argv[1:], 'finl:')
     except getopt.error:
-        print 'Error: Unknown command-line options/args'
-        print USAGE
+        print('Error: Unknown command-line options/args')
+        print(USAGE)
         sys.exit(1)
 
     if len(args) != 6:
-        print 'Error: Wrong number of arguments'
-        print USAGE
+        print('Error: Wrong number of arguments')
+        print(USAGE)
         sys.exit(1)
 
     mode = 'full'
     log = Log.Log ()
     [ server, database, username, passwordfilename ] = args[:4]
     [ dag_key, input_file ] = args[4:]
-    dag_key = string.atoi (dag_key)
+    dag_key = str.atoi (dag_key)
 
     noload = 0
     for (option, value) in options:
@@ -772,7 +771,7 @@ if __name__ == '__main__':
     if noload:
         log.writeline ('Operating in NO-LOAD mode')
 
-    password = string.strip(open(passwordfilename, 'r').readline())
+    password = str.strip(open(passwordfilename, 'r').readline())
     vocloadlib.setupSql (server, database, username, password)
     load = DAGLoad (input_file, mode, dag_key, log, passwordfilename)
     load.go()

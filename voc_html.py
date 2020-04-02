@@ -1,7 +1,6 @@
-#!/usr/local/bin/python
 
 # This is a simple library to return an html
-# string to the program calling a method.
+# str.to the program calling a method.
 # This object contains no data; it simply
 # encapsulates a few basic html operations
 
@@ -48,6 +47,3 @@ def getStartHTMLDocumentHTML( documentTitle ):
 def getEndHTMLDocumentHTML():
    return "</BODY>" + EOL + \
           "</HTML>" + EOL
-
-
-
