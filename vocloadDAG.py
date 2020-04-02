@@ -604,17 +604,17 @@ if __name__ == "__main__":
     print("Closure:")
     c = Closure().go(d)
     for (n,descs) in c.items():
-        print(str(n), "->", end=' ')
+        print(str(n), "->")
         for x in descs:
-            print(str(x), end=' ')
+            print(str(x))
         print()
     print()
     print("Reverse Closure:")
     c = Closure().go(d, reversed=True)
     for (n,ancs) in c.items():
-        print(str(n), "<-", end=' ')
+        print(str(n), "<-")
         for x in ancs:
-            print(str(x), end=' ')
+            print(str(x))
         print()
     print()
     print("Ancestors of d:")

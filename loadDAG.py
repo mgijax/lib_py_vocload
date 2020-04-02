@@ -54,7 +54,6 @@
 
 import sys      # standard Python libraries
 import types
-import string
 import getopt
 import os
 
@@ -605,11 +604,9 @@ class DAGLoad:
         # Throws: propagates any exceptions from vocloadlib.nl_sqlog()
 
         if DEBUG:
-           self.log.writeline (INSERT_NODE % (self.dag_key, node_key,
-                                object_key, label_key) )
+           self.log.writeline (INSERT_NODE % (self.dag_key, node_key, object_key, label_key) )
         self.loadNodeBCP=1
-        self.dagNodeBCPFile.write(BCP_INSERT_NODE % (node_key, self.dag_key,
-                                  object_key, label_key) )
+        self.dagNodeBCPFile.write(BCP_INSERT_NODE % (node_key, self.dag_key, object_key, label_key) )
         return
 
     def addEdge (self,
@@ -754,7 +751,7 @@ if __name__ == '__main__':
     log = Log.Log ()
     [ server, database, username, passwordfilename ] = args[:4]
     [ dag_key, input_file ] = args[4:]
-    dag_key = str.atoi (dag_key)
+    dag_key = int (dag_key)
 
     noload = 0
     for (option, value) in options:
