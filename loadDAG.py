@@ -184,7 +184,7 @@ class DAGLoad:
 
         # find DAG key and name (propagate error if invalid)
 
-        if type(dag) == bytes:
+        if type(dag) == str:
             self.dag_name = dag
             self.dag_key = vocloadlib.getDagKey (dag)
         else:
