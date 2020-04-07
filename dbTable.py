@@ -41,19 +41,16 @@ class Record:
 class RecordSet:
         def __init__ (self,
                 rows,			# list of dictionaries, each is a row
-                primary_key = None	# str. name of pk field (if any)
+                primary_key = None	# string name of pk field (if any)
                 ):
-                self.primary_key = primary_key
+                self.primary_key = primary_key.lower()
                 self.indexes = {}
                 self.primary_keys = {}
                 self.records = []
 
                 for row in rows:
-                        if primary_key != None:
-                                key = row[primary_key]
-                                if key in self:
-                                        raise error(bad_key % (primary_key, \
-                                                key))
+                        if self.primary_key != None:
+                                key = row[self.primary_key]
                                 self.primary_keys[key] = len(self.records)
                         self.records.append (Record(row))
                 return
