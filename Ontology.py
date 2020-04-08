@@ -70,19 +70,19 @@ class OboTerm(object):
 """
 An OboOntology is a DAG whose nodes are OboTerms (or subclasses thereof).
 Hence each node has:
-    id			(str.
-    name		(str.
-    namespace		(str.
+    id			(string)
+    name		(string)
+    namespace		(string)
     is_obsolete		(boolean)
 
-Edges (relationships between nodes) have a relationshipType (a str., 
+Edges (relationships between nodes) have a relationshipType (a string), 
 typically "is_a", "part_of", etc.
 
 An OboOntology keeps track of various things about the ontology:
     header	      - dict: keyword -> value from the OBO header stanza
-    namespaces	      - dict: namespace (str. -> 0 (value not used)
+    namespaces	      - dict: namespace (string) -> 0 (value not used)
     relationshipTypes - dict: relationshiptype -> 0 (value not used)
-    nsRoots	      - dict: namespace (str. -> list of root OboTerms in
+    nsRoots	      - dict: namespace (string) -> list of root OboTerms in
                                                    that namespace
         Note the concept of "root" here:
         a term/node is a root if it has no parents in any namespace.
@@ -101,25 +101,25 @@ class OboOntology(vocloadDAG.DAG):
     def __init__(self, nodeType=OboTerm):
         # nodeType should be a subclass of OboTerm
         super(OboOntology, self).__init__()
-        self.id2term = {}	# id (str. -> OboTerm object
-        self.namespaces = {}	# ns (str. -> 0 (value meaningless)
+        self.id2term = {}	# id (string) -> OboTerm object
+        self.namespaces = {}	# ns (string) -> 0 (value meaningless)
                                 #  all namespaces seen so far
 
-        self.relationshipTypes = {} # reltype (str. -> 0 (value meaningless)
+        self.relationshipTypes = {} # reltype (string) -> 0 (value meaningless)
                                 #   all relationshipTypes seen so far
 
-        self.header = {}	# obo file header keyword (str. -> val (str)
+        self.header = {}	# obo file header keyword (string) -> val (str)
                                 # (header info from the OBO file)
 
-        self.nsRoots = {}	# namespace (str. -> [ root OboTerms ]
+        self.nsRoots = {}	# namespace (string) -> [ root OboTerms ]
         self.nodeType = nodeType  # type of term objects to instantiate
 
     def getNamespaces(self):
-    # Return list of namespaces (list of str.)
+    # Return list of namespaces (list of string))
         return list(self.namespaces.keys())
 
     def getRelationshipTypes(self):
-    # Return list of RelationshipTypes (list of str.)
+    # Return list of RelationshipTypes (list of string))
         return list(self.relationshipTypes.keys())
 
     def setAttribute(self, attr, value):
@@ -136,7 +136,7 @@ class OboOntology(vocloadDAG.DAG):
         return self.header.get(attr,dflt)
 
     def addTerm(self, id, name=None):
-    # Add an OboTerm to the ontology w/ the specified ID (str. if it is not
+    # Add an OboTerm to the ontology w/ the specified ID (string) if it is not
     #     already in the Ontology
     # Set/Update OboTerm's name if not None
     # Return the Oboterm, (either newly created or already existing)
@@ -154,7 +154,7 @@ class OboOntology(vocloadDAG.DAG):
     def removeTerm(self, term):
     # Remove the specified term from the ontology
     # This removes all relationships involving this term too.
-    # Term can be an ID (str. or an OboTerm object itself.
+    # Term can be an ID (string) or an OboTerm object itself.
     # Assumes the term is in the ontology
 
         if type(term) is bytes:	# if term is ID
@@ -173,17 +173,17 @@ class OboOntology(vocloadDAG.DAG):
         self.nsRoots.clear()	# clear roots cache
 
     def hasTerm(self, id):
-    # Return True if we have a term w/ the specified ID (str.
+    # Return True if we have a term w/ the specified ID (string)
         return id in self.id2term
 
     def getTerm(self, id):
-    # Return a term object for the specified ID (str.
+    # Return a term object for the specified ID (string)
     # Raises KeyError if there is no term w/ that ID
         return self.id2term[id]
 
     def setTermAttribute(self, term, attr, value):
     # Set an attr of a term.
-    # term can be an ID (str. or an OboTerm object itself
+    # term can be an ID (string) or an OboTerm object itself
     # It is important to use this method to set term attributes so
     #   we can keep track of various aspects of the Ontology.
 
@@ -200,8 +200,8 @@ class OboOntology(vocloadDAG.DAG):
 
     def addRelationship(self, child, rel, parent):
     # Add the specified relationship to the ontology.
-    # rel (str. is the relationship type
-    # parent and child can be either IDs (str.) or OboTerms themselves
+    # rel (string) is the relationship type
+    # parent and child can be either IDs (string)) or OboTerms themselves
     # Assumes child and parent refer to existing OboTerms in the ontology.
         if type(parent) is bytes:	# if parent is ID
             parent = self.getTerm(parent)
@@ -214,7 +214,7 @@ class OboOntology(vocloadDAG.DAG):
 
     def removeRelationship(self, parent, child):
     # Remove the specified relationship from the ontology.
-    # parent and child can be either IDs (str.) or OboTerms themselves
+    # parent and child can be either IDs (string)) or OboTerms themselves
         if type(parent) is bytes:	# if parent is ID
             parent = self.getTerm(parent)
         if type(child) is bytes:	# if child is ID
@@ -225,7 +225,7 @@ class OboOntology(vocloadDAG.DAG):
 
     def getRoots(self, ns=None):
     # Return a list of root nodes [OboTerms]
-    # ns (str. is a namespace. If specified, just return list of roots
+    # ns (string) is a namespace. If specified, just return list of roots
     #    in that namespace.
     # Does not consider obsolete terms as roots.
         if len(self.nsRoots) == 0:
@@ -261,7 +261,7 @@ class OboOntology(vocloadDAG.DAG):
 #
 # Rudimentary parser for OBO format files. Parses lines into groups
 # called stanzas. Passes each stanza to a provided function that processes
-# the stanza. A stanza is simply a dict mapping str.keys to list-of-str. 
+# the stanza. A stanza is simply a dict mapping string keys to list-of-string 
 # values. 
 #
 # Example. Here's a stanza from an OBO file:
@@ -380,7 +380,7 @@ class OboLoader(object):
 
     def loadFile(self, file, cullObsolete=False, loadMinimal=False, config=None, nodeType=OboTerm, cullCrossEdges=True, termCallBack=None):
     # Return a new Ontology object representing the OBO file
-    # file - either a filename (str. or an file descriptor open for reading.
+    # file - either a filename (string) or an file descriptor open for reading.
     # cullObsolete - if true obsolete terms are skipped & not represented
     # loadMinimal - if true, only represent: IDs, term names, namespace, 
     #		 edges are handled. Other stanza entries are ignored
@@ -449,8 +449,7 @@ class OboLoader(object):
         for reln in stanza.get("relationship", []):
             tokens = reln.split()		# should be edge-type parentID
             if len(tokens) != 2:
-                raise Exception("Unexpected relationship specification: " \
-                                + str(tokens))
+                raise Exception("Unexpected relationship specification: " + str(tokens))
             (rel,id2) = list(map(str.strip, tokens))
             self.ontology.addTerm(id2)		# don't know term's name
             self.ontology.addRelationship(id, rel, id2)
