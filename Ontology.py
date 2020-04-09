@@ -157,7 +157,7 @@ class OboOntology(vocloadDAG.DAG):
     # Term can be an ID (string) or an OboTerm object itself.
     # Assumes the term is in the ontology
 
-        if type(term) is bytes:	# if term is ID
+        if type(term) is str:	# if term is ID
             term = self.getTerm(term)
         id = term.id
 
@@ -187,7 +187,7 @@ class OboOntology(vocloadDAG.DAG):
     # It is important to use this method to set term attributes so
     #   we can keep track of various aspects of the Ontology.
 
-        if type(term) is bytes:	# if term is ID
+        if type(term) is str:	# if term is ID
             term = self.getTerm(term)
 
         if attr == "id":
@@ -203,9 +203,9 @@ class OboOntology(vocloadDAG.DAG):
     # rel (string) is the relationship type
     # parent and child can be either IDs (string)) or OboTerms themselves
     # Assumes child and parent refer to existing OboTerms in the ontology.
-        if type(parent) is bytes:	# if parent is ID
+        if type(parent) is str:	# if parent is ID
             parent = self.getTerm(parent)
-        if type(child) is bytes:	# if child is ID
+        if type(child) is str:	# if child is ID
             child = self.getTerm(child)
 
         self.relationshipTypes[rel] = 0
@@ -215,9 +215,9 @@ class OboOntology(vocloadDAG.DAG):
     def removeRelationship(self, parent, child):
     # Remove the specified relationship from the ontology.
     # parent and child can be either IDs (string)) or OboTerms themselves
-        if type(parent) is bytes:	# if parent is ID
+        if type(parent) is str:	# if parent is ID
             parent = self.getTerm(parent)
-        if type(child) is bytes:	# if child is ID
+        if type(child) is str:	# if child is ID
             child = self.getTerm(child)
 
         self.removeEdge(parent, child)
@@ -313,12 +313,12 @@ class OboParser(object):
         self.stanzaProcessor = stanzaProcessor
 
     def parseFile(self, file):
-        if type(file) is bytes:
+        if type(file) is str:
             self.fd = open(file, 'r')
         else:
             self.fd = file
         self.__go__()
-        if type(file) is bytes:
+        if type(file) is str:
             self.fd.close()
 
     def __finishStanza__(self):
