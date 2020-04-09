@@ -245,7 +245,7 @@ def getDagKey (
     #   values, we may also need to know which 'vocab' it relates to.
 
     if vocab:
-        if type(vocab) == bytes:
+        if type(vocab) == str:
             vocab = getVocabKey (vocab)
         result = db.sql ('''select dd._DAG_key
                 from DAG_DAG dd, VOC_VocabDAG vvd
@@ -386,7 +386,7 @@ def countTerms (
     # Effects: queries the database
     # Throws: propagates any exceptions from db.sql()
 
-    if type(vocab) == bytes:
+    if type(vocab) == str:
         vocab = getVocabKey (vocab)
     result = db.sql ('''select count(*) as ct
             from VOC_Term
@@ -407,7 +407,7 @@ def countNodes (
     #   the associated vocab to uniquely identify a DAG when given
     #   a DAG name.
 
-    if type(dag) == bytes:
+    if type(dag) == str:
         dag = getDagKey (dag, vocab)
     result = db.sql ('''select count(*) as ct
             from DAG_Node
@@ -427,7 +427,7 @@ def getTerms (
     #   of which represents a term and its attributes.  The
     #   dictionaries may be accessed using the desired term's key.
 
-    if type(vocab) == bytes:
+    if type(vocab) == str:
         vocab = getVocabKey (vocab)
 
     [ voc_term, voc_synonym, voc_comment ] = db.sql( [
@@ -538,7 +538,7 @@ def getTermIDs (
     if TERM_IDS:            # if global is set, use it
         return TERM_IDS
 
-    if type(vocab) == bytes:
+    if type(vocab) == str:
         vocab = getVocabKey (vocab)
     result = db.sql ('''select acc.accID, vt._Term_key, vt.isObsolete, vt.term
             from VOC_Term vt, ACC_Accession acc
@@ -603,7 +603,7 @@ def getSecondaryTermIDs (
     # Effects: queries the database
     # Throws: propagates any exceptions from db.sql()
 
-    if type(vocab) == bytes:
+    if type(vocab) == str:
         vocab = getVocabKey (vocab)
 
     result = db.sql ('''select acc.accID, vt._Term_key, vt.term
@@ -781,7 +781,7 @@ def getVocabAttributes (
 
     global vocab_info_cache
 
-    if type(vocab) == bytes: # ensure we work w/ the key
+    if type(vocab) == str: # ensure we work w/ the key
         vocab = getVocabKey (vocab)
 
     # get it from the database if it's not in the cache already
