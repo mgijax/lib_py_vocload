@@ -657,7 +657,9 @@ def readTabFile (
         i = 0
         dict = {}
         while i < num_fields:
-            dict[fieldnames[i]] = fields[i]
+            #dict[fieldnames[i]] = fields[i]
+            # to ignore/skip non-ascii characters
+            dict[fieldnames[i]] = ''.join([j if ord(j) < 128 else ' ' for j in fields[i]])
             i = i + 1
 
         lines.append(dict)  # add to the list of dictionaries
