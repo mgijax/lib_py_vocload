@@ -96,7 +96,8 @@ def sqlog (
     # Effects: writes to 'log', sends 'commands' to database
     # Throws: propagates any exceptions raised by db.sql()
 
-    log.writeline (commands)
+    if os.getenv('LOG_SQL',False) == 'True':
+        log.writeline (commands)
     return db.sql (commands)
 
 def setNoload (
@@ -128,7 +129,8 @@ def nl_sqlog (
     #   prefix.  It will check the no-load flag before executing
     #   the SQL.
 
-    log.writeline (commands)
+    if os.getenv('LOG_SQL',False) == 'True':
+        log.writeline (commands)
     if not NO_LOAD:
         return db.sql (commands)
     return []
